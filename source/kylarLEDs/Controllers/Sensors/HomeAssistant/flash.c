@@ -3,6 +3,7 @@
 #include "flash.h"
 #include "hardware/flash.h"
 #include "hardware/sync.h"
+#include "pico/time.h"
 
 device_info_t device_info;
 
@@ -17,6 +18,7 @@ void flash_write_device_info() {
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
     flash_range_program(FLASH_TARGET_OFFSET, flash_data, FLASH_SECTOR_SIZE);
     restore_interrupts(ints);
+    sleep_ms(5);
 }
 
 // Function to read device information from flash memory
@@ -32,4 +34,3 @@ void flash_read_device_info() {
     printf("device_info.entity %s\n\r", device_info.entity);
     printf("device_info.name %s\n\r", device_info.name);
 }
-

@@ -20,6 +20,8 @@
 
 #include "flash.h"
 
+static err_t _mqtt_publish_discovery();
+
 extern device_info_t device_info;
 
 typedef struct MQTT_CLIENT_T_ {
@@ -29,6 +31,8 @@ typedef struct MQTT_CLIENT_T_ {
     u32_t counter;
     u32_t reconnect;
 } MQTT_CLIENT_T;
+
+enum{ DEVICE_NAME, ENTITY_NAME, KEY_MAX };
 
 // MQTT global
 static mqtt_client_t *g_client;
@@ -114,6 +118,8 @@ static void mqtt_build_topics() {
     snprintf(led_set_t, sizeof(led_set_t), "ha/%s/led/set_t", mac_str);
     // Update entity name topic (Home Assistant to PicoW)
     snprintf(update_entname_t, sizeof(update_entname_t), "ha/%s/update/entname", mac_str);
+    // Update device name topic (Home Assistant to PicoW)
+    snprintf(update_devname_t, sizeof(update_devname_t), "ha/%s/update/devname", mac_str);
 }
 
 // Global data
@@ -133,24 +139,50 @@ static void mqtt_pub_start_cb(void *arg, const char *topic, u32_t tot_len) {
 }
 
 void mqtt_parse_custom_data(const char *data_str) {
+    // Flag for update
+    bool update_flag = false;
+    uint8_t _key = KEY_MAX;
+    char value_pos_arr[128] = {0};
+
     // Define the key we are looking for
-    const char *key = "value:";
-    size_t key_len = strlen(key);
+    const char *key1 = "value:";
+    const char *key2 = "device_name:";
+    const char *key3 = "entity_name:";
+    size_t key1_len = strlen(key1);
+    size_t key2_len = strlen(key3);
+    size_t key3_len = strlen(key3);
 
     // Find the key in the input string
-    const char *key_pos = strstr(data_str, key);
-    if (key_pos != NULL) {
-        // Skip past the key to the value
-        const char *value_pos = key_pos + key_len;
+    const char *key1_pos = strstr(data_str, key1);
+    const char *key2_pos = strstr(data_str, key2);
+    const char *key3_pos = strstr(data_str, key3);
+    if (key1_pos != NULL) {
+        const char *value_pos = key1_pos + key1_len;
+        snprintf(value_pos_arr, sizeof(value_pos_arr), value_pos); 
+    } else if (key2_pos != NULL) {
+        const char *value_pos = key2_pos + key2_len;
+        snprintf(value_pos_arr, sizeof(value_pos_arr), value_pos);
+        _key = DEVICE_NAME;
+        update_flag = true;
+    } else if (key3_pos != NULL) {
+        const char *value_pos = key2_pos + key2_len;
+        snprintf(value_pos_arr, sizeof(value_pos_arr), value_pos);
+        _key = ENTITY_NAME;
+        update_flag = true;
+    } else {
+        printf("Key not found in input string\n");
+    }
 
+    if (update_flag) {
         // Trim leading whitespace
-        while (*value_pos == ' ' || *value_pos == '\t' || *value_pos == '"') {
-            value_pos++;
+        char *_val = value_pos_arr;
+        while (*_val == ' ' || *_val == '\t' || *_val == '"') {
+            _val++;
         }
 
         // Copy the value into a buffer
         char value[MAX_NAME_LENGTH] = {0};
-        strncpy(value, value_pos, MAX_NAME_LENGTH - 1);
+        strncpy(value, _val, MAX_NAME_LENGTH - 1);
         value[MAX_NAME_LENGTH - 1] = '\0'; // Ensure null-termination
 
         // Trim trailing whitespace
@@ -165,13 +197,16 @@ void mqtt_parse_custom_data(const char *data_str) {
             char default_name[128] = {0};
             snprintf(default_name, sizeof(default_name), "%s %s", DEFAULT_DEVICE_NAME, DEFAULT_ENTITY_NAME);
             if(strncmp(value, default_name, sizeof(value)) != 0) {
-                printf("%d\n\r", __LINE__);
-                snprintf(device_info.entity, strlen(value), value);
+                if (DEVICE_NAME == _key) {
+                    snprintf(device_info.name, strlen(value) + 1, value);
+                } else if (ENTITY_NAME == _key) {
+                    snprintf(device_info.entity, strlen(value) + 1, value);
+                } else {
+                    // do nothing
+                }
                 flash_write_device_info();
             }
         }
-    } else {
-        printf("Key 'value:' not found in input string\n");
     }
 }
 
@@ -199,7 +234,6 @@ static void mqtt_pub_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags)
             printf("%d\n\r", __LINE__);
             mqtt_parse_custom_data(buffer);
             printf("%d\n\r", __LINE__);
-
         }
     }
 }
@@ -287,7 +321,7 @@ static err_t mqtt_test_connect() {
     err = mqtt_client_connect(g_state->mqtt_client, &(g_state->remote_addr), MQTT_PORT, mqtt_connection_cb, g_state, client_info);
 
     if (ERR_OK != err) {
-        printf("mqtt_connect return %d\n", err);
+        // printf("mqtt_connect return %d\n", err);
     } else if (ERR_OK == err) {
         mqtt_build_topics();
     } else {
@@ -334,6 +368,7 @@ void ha_mqtt_loop() {
                 if (!subscribed) {
                     mqtt_sub_unsub(g_state->mqtt_client, led_set_t, 0, mqtt_sub_request_cb, 0, 1);
                     mqtt_sub_unsub(g_state->mqtt_client, update_entname_t, 0, mqtt_sub_request_cb, 0, 1);
+                    mqtt_sub_unsub(g_state->mqtt_client, update_devname_t, 0, mqtt_sub_request_cb, 0, 1);
                     subscribed = true;
                 }
                 if (!discovered) {
