@@ -59,8 +59,8 @@
  * AP_WIFI_SSID and AP_WIFI_PASSWORD are used when creating the wifi network (wifi access point)
  * The AP stuff is not implemented yet.
  */
-#define WIFI_SSID "trojan-virus" // "Starlink";
-#define WIFI_PASSWORD "dmesg1-W-clear!" // "spacelasers42069";
+#define WIFI_SSID "Starlink"
+#define WIFI_PASSWORD "spacelasers42069"
 #define AP_WIFI_SSID "picow"
 #define AP_WIFI_PASSWORD "12345678"
 
@@ -68,10 +68,12 @@
 ////////////////////////////////////////////////////////////
 /////////                DEBUG                   ////////////
 ////////////////////////////////////////////////////////////
+#define DEBUG_DELAY_MAIN 0 // Used to give time to start Serial Monitoring
 #define DEBUG_PRINT_MAIN 0
-#define DEBUG_PRINT_MIC 1
-#define DEBUG_PRINT_MIC_TIMING 1
-#define DEBUG_PRINT_OTHER 1
+#define DEBUG_PRINT_MIC 0
+#define DEBUG_PRINT_MIC_TIMING 0
+#define DEBUG_PRINT_FLASH 0
+#define DEBUG_PRINT_OTHER 0
 
 ////////////////////////////////////////////////////////////
 /////////                MISC                   ////////////

@@ -24,6 +24,10 @@
 
 using namespace std;
 int main(){
+    if(DEBUG_DELAY_MAIN) {
+        sleep_ms(3000);
+    }
+    
     // Initialize framework infrastructure
     Controller *ledController = new FireFlyWController();
     
