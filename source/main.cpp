@@ -19,7 +19,7 @@
 #include <malloc.h>
 #include "pico/time.h"
 #include "config.h"
-
+#include "pico/multicore.h"
 
 
 using namespace std;
@@ -68,6 +68,7 @@ int main(){
     currentPattern->init();
 
     ExecTimer *timer = new ExecTimer();
+    multicore_lockout_victim_init();        // This tells core0 to stop when data flashing on Core1 starts
     //Main loop
     while(1){
         // mem usage:

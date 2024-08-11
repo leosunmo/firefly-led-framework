@@ -20,6 +20,8 @@
 
 #include "flash.h"
 
+static err_t _mqtt_publish_discovery();
+
 extern device_info_t device_info;
 
 typedef struct MQTT_CLIENT_T_ {
@@ -29,6 +31,8 @@ typedef struct MQTT_CLIENT_T_ {
     u32_t counter;
     u32_t reconnect;
 } MQTT_CLIENT_T;
+
+enum{ DEVICE_NAME, ENTITY_NAME, KEY_MAX };
 
 // MQTT global
 static mqtt_client_t *g_client;
@@ -106,24 +110,16 @@ static err_t _mqtt_publish(const char *topic, const char *msg, uint8_t retain, u
 }
 
 static void mqtt_build_topics() {
-    uint8_t mac[6];
-    cyw43_wifi_get_mac(NULL, CYW43_ITF_STA, mac);
-    // Unique ID
-    snprintf(mac_str, sizeof(mac_str), "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     // Discovery topic (PicoW to Home Assistant)
     snprintf(discovery_t, sizeof(discovery_t), "homeassistant/switch/%s/config", mac_str);
     // LED state topic (PicoW to Home Assistant)
     snprintf(led_stat_t, sizeof(led_stat_t), "ha/%s/led/stat_t", mac_str);
     // LED set topic (Home Assistant to PicoW)
     snprintf(led_set_t, sizeof(led_set_t), "ha/%s/led/set_t", mac_str);
-    // Update device name topic (Home Assistant to PicoW)
-    snprintf(update_devname_t, sizeof(update_devname_t), "ha/%s/update/devname", mac_str);
     // Update entity name topic (Home Assistant to PicoW)
     snprintf(update_entname_t, sizeof(update_entname_t), "ha/%s/update/entname", mac_str);
-    // Update device model topic (Home Assistant to PicoW)
-    snprintf(update_model_t, sizeof(update_model_t), "ha/%s/update/mdl", mac_str);
-    // Update device manufacturer topic (Home Assistant to PicoW)
-    snprintf(update_mf_t, sizeof(update_mf_t), "ha/%s/update/mf", mac_str);
+    // Update device name topic (Home Assistant to PicoW)
+    snprintf(update_devname_t, sizeof(update_devname_t), "ha/%s/update/devname", mac_str);
 }
 
 // Global data
@@ -139,6 +135,78 @@ static void mqtt_pub_start_cb(void *arg, const char *topic, u32_t tot_len) {
     } else {
         data_in = tot_len;
         data_len = 0;
+    }
+}
+
+void mqtt_parse_custom_data(const char *data_str) {
+    // Flag for update
+    bool update_flag = false;
+    uint8_t _key = KEY_MAX;
+    char value_pos_arr[128] = {0};
+
+    // Define the key we are looking for
+    const char *key1 = "value:";
+    const char *key2 = "device_name:";
+    const char *key3 = "entity_name:";
+    size_t key1_len = strlen(key1);
+    size_t key2_len = strlen(key3);
+    size_t key3_len = strlen(key3);
+
+    // Find the key in the input string
+    const char *key1_pos = strstr(data_str, key1);
+    const char *key2_pos = strstr(data_str, key2);
+    const char *key3_pos = strstr(data_str, key3);
+    if (key1_pos != NULL) {
+        const char *value_pos = key1_pos + key1_len;
+        snprintf(value_pos_arr, sizeof(value_pos_arr), value_pos); 
+    } else if (key2_pos != NULL) {
+        const char *value_pos = key2_pos + key2_len;
+        snprintf(value_pos_arr, sizeof(value_pos_arr), value_pos);
+        _key = DEVICE_NAME;
+        update_flag = true;
+    } else if (key3_pos != NULL) {
+        const char *value_pos = key2_pos + key2_len;
+        snprintf(value_pos_arr, sizeof(value_pos_arr), value_pos);
+        _key = ENTITY_NAME;
+        update_flag = true;
+    } else {
+        printf("Key not found in input string\n");
+    }
+
+    if (update_flag) {
+        // Trim leading whitespace
+        char *_val = value_pos_arr;
+        while (*_val == ' ' || *_val == '\t' || *_val == '"') {
+            _val++;
+        }
+
+        // Copy the value into a buffer
+        char value[MAX_NAME_LENGTH] = {0};
+        strncpy(value, _val, MAX_NAME_LENGTH - 1);
+        value[MAX_NAME_LENGTH - 1] = '\0'; // Ensure null-termination
+
+        // Trim trailing whitespace
+        char *end = value + strlen(value) - 1;
+        while (end > value && (*end == ' ' || *end == '\t' || *end == '\n' || *end == '\r' || *end == '"')) {
+            *end = '\0';
+            end--;
+        }
+
+        if("None" != ((const char *)value)) {
+            // Save into flash and mark the data as valid
+            char default_name[128] = {0};
+            snprintf(default_name, sizeof(default_name), "%s %s", DEFAULT_DEVICE_NAME, DEFAULT_ENTITY_NAME);
+            if(strncmp(value, default_name, sizeof(value)) != 0) {
+                if (DEVICE_NAME == _key) {
+                    snprintf(device_info.name, strlen(value) + 1, value);
+                } else if (ENTITY_NAME == _key) {
+                    snprintf(device_info.entity, strlen(value) + 1, value);
+                } else {
+                    // do nothing
+                }
+                flash_write_device_info();
+            }
+        }
     }
 }
 
@@ -162,24 +230,10 @@ static void mqtt_pub_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags)
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
             _mqtt_publish(led_stat_t, "OFF", 0, 0);
             ha_data.enabled = false;
-        } else if (strncmp((const char *)data, update_devname_t, strlen(update_devname_t)) == 0) {
-            strncpy(device_info.name, (const char *)data, len);
-            device_info.name[len] = '\0';
-            flash_write_device_info();
-        } else if (strncmp((const char *)data, update_model_t, strlen(update_model_t)) == 0) {
-            strncpy(device_info.model, (const char *)data, len);
-            device_info.model[len] = '\0';
-            flash_write_device_info();
-        } else if (strncmp((const char *)data, update_mf_t, strlen(update_mf_t)) == 0) {
-            strncpy(device_info.manufacturer, (const char *)data, len);
-            device_info.manufacturer[len] = '\0';
-            flash_write_device_info();
-        } else if (strncmp((const char *)data, update_entname_t, strlen(update_entname_t)) == 0) {
-            strncpy(device_info.entity, (const char *)data, len);
-            device_info.entity[len] = '\0';
-            flash_write_device_info();
         } else {
-            // topic is not subscribed to
+            printf("%d\n\r", __LINE__);
+            mqtt_parse_custom_data(buffer);
+            printf("%d\n\r", __LINE__);
         }
     }
 }
@@ -201,11 +255,9 @@ static err_t _mqtt_publish_discovery() {
         "\"uniq_id\":\"%s\","
         "\"dev\":{\"ids\":\"%s\","
         "\"name\":\"%s\","
-        "\"sw\":\"%s\","
-        "\"mdl\":\"%s\","
-        "\"mf\":\"%s\"}}",
+        "\"sw\":\"%s\"}}",
         device_info.entity, led_stat_t, led_set_t, mac_str, mac_str,
-        device_info.name, SW_VERSION, device_info.model, device_info.manufacturer);
+        device_info.name, SW_VERSION);
     _mqtt_publish(discovery_t, msg, 1, 1);
 }
 
@@ -223,8 +275,11 @@ static err_t mqtt_test_connect() {
     err_t err;
 
     memset(&ci, 0, sizeof(ci));
-
-    ci.client_id = "PicoW";
+    uint8_t mac[6];
+    cyw43_wifi_get_mac(NULL, CYW43_ITF_STA, mac);
+    // Unique ID
+    snprintf(mac_str, sizeof(mac_str), "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    ci.client_id = mac_str;
     ci.client_user = NULL;
     ci.client_pass = NULL;
     ci.keep_alive = 0;
@@ -266,7 +321,7 @@ static err_t mqtt_test_connect() {
     err = mqtt_client_connect(g_state->mqtt_client, &(g_state->remote_addr), MQTT_PORT, mqtt_connection_cb, g_state, client_info);
 
     if (ERR_OK != err) {
-        printf("mqtt_connect return %d\n", err);
+        // printf("mqtt_connect return %d\n", err);
     } else if (ERR_OK == err) {
         mqtt_build_topics();
     } else {
@@ -312,6 +367,8 @@ void ha_mqtt_loop() {
 
                 if (!subscribed) {
                     mqtt_sub_unsub(g_state->mqtt_client, led_set_t, 0, mqtt_sub_request_cb, 0, 1);
+                    mqtt_sub_unsub(g_state->mqtt_client, update_entname_t, 0, mqtt_sub_request_cb, 0, 1);
+                    mqtt_sub_unsub(g_state->mqtt_client, update_devname_t, 0, mqtt_sub_request_cb, 0, 1);
                     subscribed = true;
                 }
                 if (!discovered) {
