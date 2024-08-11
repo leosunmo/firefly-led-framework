@@ -47,21 +47,19 @@ void pdm_core1_entry(){
 
     // Unfortunately, this is where I will initialize wifi
     // I want it to be on core1
-    if(WIFI_ENABLE){
-        wifi_init();
-    }
-    if(!MICROPHONE_ENABLE){
-        while(1){
-            cyw43_arch_poll();
-        }
-    }
+    // Note: This is just kept as an idea now, WIFI_ENABLE is not active currently.
+    // if(WIFI_ENABLE){
+    //     wifi_init();
+    //     while(1){
+    //         cyw43_arch_poll();
+    //     }
+    // }
     
-#ifndef WIFI_MQTT_TEST
     hanning_window_init_q15(window_q15, FFT_SIZE);
     arm_rfft_init_q15(&S_q15, FFT_SIZE, 0, 1);
-#endif
+
     multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
-#ifndef WIFI_MQTT_TEST
+
     //Loop:
     // initialize the PDM microphone
     if (pdm_microphone_init(&pdm_config) < 0) {
@@ -78,7 +76,7 @@ void pdm_core1_entry(){
         printf("PDM microphone start failed!\n");
         while (pdm_microphone_start() < 0) { tight_loop_contents(); }
     }
-#endif
+
     int starting_bin = 2;
     float low_bins = LOW_BINS;  // 14
     float high_bins = SKIP_BINS; // 240 // currently used as "skip" bins
@@ -93,28 +91,28 @@ void pdm_core1_entry(){
         //cyw43_arch_poll();
         //restore_interrupts(irq_status);
         
-        if(exec_timing){
+        if(DEBUG_PRINT_MIC_TIMING){
             new_time = get_absolute_time(); //Microseconds
             start_time = new_time;
         }
         loops_count = 0;
-#ifndef WIFI_MQTT_TEST
+
         // Waiting for new samples
         while (new_samples_captured == 0) {
             
             //printf("-> ");
-            cyw43_arch_poll();
+            //cyw43_arch_poll();
             //printf("%d| ", ++loops_count);
             //tight_loop_contents();
         }
-#endif
-        if(exec_timing){
+
+        if(DEBUG_PRINT_MIC_TIMING){
             cur_time = get_absolute_time();
             printf("wait = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
             start_time = get_absolute_time();
         }
         new_samples_captured = 0;
-#ifndef WIFI_MQTT_TEST
+
         // move input buffer values over by INPUT_BUFFER_SIZE samples
         arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE));
 
@@ -125,14 +123,14 @@ void pdm_core1_entry(){
         arm_mult_q15(window_q15, input_q15, windowed_input_q15, FFT_SIZE);
         arm_rfft_q15(&S_q15, windowed_input_q15, fft_q15);
         arm_cmplx_mag_q15(fft_q15, fft_mag_q15, FFT_MAG_SIZE);
-#endif
-        if(exec_timing){
+
+        if(DEBUG_PRINT_MIC_TIMING){
             cur_time = get_absolute_time();
             printf("arm stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
             start_time = get_absolute_time();
         }
         
-#ifndef WIFI_MQTT_TEST
+
         // Audio processing:
         if(print){
             printf("|");
@@ -164,7 +162,7 @@ void pdm_core1_entry(){
                 
             
             // scale it between 0 to 255 to map, so we can map it to a color based on the color map
-            if(print){
+            if(DEBUG_PRINT_MIC){
                 int color_index = (magnitude / FFT_MAG_MAX) * 255;
                 char symbol = ' ';
                 if (color_index > 160) {
@@ -179,11 +177,11 @@ void pdm_core1_entry(){
             }
             
         }
-        if(print){
+        if(DEBUG_PRINT_MIC){
             printf("|\n");
         }
 
-        if(exec_timing){
+        if(DEBUG_PRINT_MIC_TIMING){
             //cur_time = get_absolute_time();
             printf("sum bins = %.1f us\n", (double)(get_absolute_time()-start_time));
             start_time = get_absolute_time();
@@ -195,13 +193,13 @@ void pdm_core1_entry(){
         //printf("CORE1 %.0f %.0f %.0f\n", freq_data.low_freq_energy, freq_data.high_freq_energy, freq_data.freq_energy);
         updateSoundProfileLow();
         //updateSoundProfileHigh();
-        if(exec_timing){
+        if(DEBUG_PRINT_MIC_TIMING){
             //cur_time = get_absolute_time();
             printf("profile = %.1f us\n", (double)(get_absolute_time()-start_time));
             start_time = get_absolute_time();
         }
-#endif
-        if(exec_timing){
+
+        if(DEBUG_PRINT_MIC_TIMING){
             printf("sound FPS = %.1f / sec\n\n", 1000000.0/(double)(to_us_since_boot(get_absolute_time()) - to_us_since_boot(new_time)));
         }
     }
