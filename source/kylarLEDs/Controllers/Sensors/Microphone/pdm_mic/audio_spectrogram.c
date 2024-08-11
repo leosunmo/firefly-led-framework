@@ -183,7 +183,7 @@ void pdm_core1_entry(){
 
         if(DEBUG_PRINT_MIC_TIMING){
             //cur_time = get_absolute_time();
-            printf("sum bins = %.1f us\n", (double)(get_absolute_time()-start_time));
+            printf("sum bins = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
             start_time = get_absolute_time();
         }
 
@@ -195,7 +195,7 @@ void pdm_core1_entry(){
         //updateSoundProfileHigh();
         if(DEBUG_PRINT_MIC_TIMING){
             //cur_time = get_absolute_time();
-            printf("profile = %.1f us\n", (double)(get_absolute_time()-start_time));
+            printf("profile = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
             start_time = get_absolute_time();
         }
 
