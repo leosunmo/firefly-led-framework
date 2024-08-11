@@ -4,6 +4,7 @@
 #include "hardware/flash.h"
 #include "hardware/sync.h"
 #include "pico/time.h"
+#include "pico/multicore.h"
 
 device_info_t device_info;
 
@@ -15,10 +16,14 @@ void flash_write_device_info() {
     memcpy(flash_data, &device_info, sizeof(device_info_t));
 
     uint32_t ints = save_and_disable_interrupts();
+    multicore_lockout_start_blocking();
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
     flash_range_program(FLASH_TARGET_OFFSET, flash_data, FLASH_SECTOR_SIZE);
+    multicore_lockout_end_blocking();
     restore_interrupts(ints);
-    sleep_ms(5);
+
+    printf("new device_info.entity %s\n\r", device_info.entity);
+    printf("new device_info.name %s\n\r", device_info.name);
 }
 
 // Function to read device information from flash memory
