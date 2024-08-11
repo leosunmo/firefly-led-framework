@@ -7,7 +7,7 @@
 #define FLASH_BASE      (0x0)
 #define DATA_MARKER     (0xA5)
 // Storage locations in flash memory
-#define FLASH_TARGET_OFFSET (256 * 1024)
+#define FLASH_TARGET_OFFSET (1024 * 1024)
 // Default device information
 #define DEFAULT_DEVICE_NAME "Firefly"
 #define DEFAULT_ENTITY_NAME "Board LED"
