@@ -49,9 +49,16 @@ class FireFlyV1Controller : public Controller{
         //uint8_t PX_sm = 0;
         PIO pio = pio0;
         //dma_channel_config *c;
-        Potentiometer *analogPot;
+
+        //PINS:
+
         uint8_t pot_gpio = 27;
-        uint8_t pattern_button = 22;
+        uint8_t boot_button = 22;
+        uint8_t encoder_a = 23;
+        uint8_t encoder_b = 24;
+        uint8_t encoder_button = 25;
+        
+        Potentiometer *analogPot;
         Encoder *encoder;
         Timing *timing;
         Button *button;

@@ -13,6 +13,6 @@ Potentiometer::Potentiometer(int pin, int adc){
 double Potentiometer::getValue(){
     adc_select_input(adc);
     uint32_t result = adc_read();
-    double value = ( (double) result)/ (4096.0);
+    double value = ( (double) result)/ (4095.0);
     return value;
 }

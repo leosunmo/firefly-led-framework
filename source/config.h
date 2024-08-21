@@ -8,12 +8,12 @@
 /**
  * NUM_STRIPS is the number of pins to output on.
  * NUM_LEDS is the number of LEDs per strip.
+ * BRIGHTNESS_OFFSET is an added brightness. Useful for when no potentiometer.
  * TODO: Make the strips able to turn on / off output pins.
  * 
  */
-#define NUM_STRIPS 2
+#define NUM_STRIPS 3
 #define NUM_LEDS 64
-
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////
