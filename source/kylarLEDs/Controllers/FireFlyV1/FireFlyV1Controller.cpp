@@ -201,11 +201,13 @@ double FireFlyV1Controller::getBrightness()
 {
     static double brightness = 0;
     static double lastPot = 0;
+    //return 0.7; // Remove this, hardcode high while testing
     if (timing->takeMsEvery(10))
     {
         double newPot = analogPot->getValue();
         brightness = (lastPot * 400 + newPot) / 401.0;
         lastPot = (lastPot * 2.0 + newPot) / 3.0;
+        // setStatusLED((uint8_t)(newPot*255)); // Test for Potentiometer
     }
     else
     {
@@ -219,12 +221,13 @@ double FireFlyV1Controller::getHue()
 {
     int count = encoder->getCount();
     double hue = (count) / 360.0;
+    // setStatusLED((uint8_t)(fmod(fabs(hue),1.0)*255)); // Test for Encoder
     return hue;
 }
 
 void FireFlyV1Controller::initHue()
 {
-    encoder = new Encoder(26, 22);
+    encoder = new Encoder(encoder_a, encoder_b);
 }
 
 void FireFlyV1Controller::initBrightness()
@@ -234,7 +237,7 @@ void FireFlyV1Controller::initBrightness()
 
 void FireFlyV1Controller::initPatternButton()
 {
-    this->button = new Button(pattern_button);
+    this->button = new Button(encoder_button);
 }
 
 void FireFlyV1Controller::givePatternIndex(uint32_t *patternIndex)
