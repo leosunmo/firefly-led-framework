@@ -36,6 +36,7 @@ class FireFlyV1Controller : public Controller{
         void initMicrophone();
     private:
         void initDMA(PIO pio, uint sm);
+        void setStatusLED(uint8_t brightness);
         
         static strip_t strips[NUM_STRIPS];
         uint8_t PX_pins[PX_PINS] = {14, 15, 16, 9};
