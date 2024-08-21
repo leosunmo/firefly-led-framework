@@ -2,6 +2,18 @@
 #include "pico/time.h"
 #include "../../../FireFlyW/WiFi/wifi.h"
 #include "../../../../../config.h"
+#include "hardware/adc.h"
+#include "hardware/dma.h"
+
+    // adc_pin = 26;
+    // adc = 0;
+    // adc_init();
+    // adc_gpio_init(pin);
+    // adc_select_input(adc);
+
+    //adc_select_input(adc);
+    //adc_read(); // returns 0 to 4095
+
 
 // microphone configuration
 const struct pdm_microphone_config pdm_config = {
@@ -40,27 +52,10 @@ const int exec_timing = 1;
 absolute_time_t new_time; //Microseconds
 absolute_time_t cur_time;
 absolute_time_t start_time;
-void pdm_core1_entry(){
-    //Init:
-    // initialize the hanning window and RFFT instance
-    sleep_ms(10); //delay here so that the dma channel doesn't get claimed..
 
-    // Unfortunately, this is where I will initialize wifi
-    // I want it to be on core1
-    // Note: This is just kept as an idea now, WIFI_ENABLE is not active currently.
-    // if(WIFI_ENABLE){
-    //     wifi_init();
-    //     while(1){
-    //         cyw43_arch_poll();
-    //     }
-    // }
-    
-    hanning_window_init_q15(window_q15, FFT_SIZE);
-    arm_rfft_init_q15(&S_q15, FFT_SIZE, 0, 1);
+int dma_chan;
 
-    multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
-
-    //Loop:
+void pdm_init(){
     // initialize the PDM microphone
     if (pdm_microphone_init(&pdm_config) < 0) {
         printf("PDM microphone initialization failed!\n");
@@ -76,6 +71,68 @@ void pdm_core1_entry(){
         printf("PDM microphone start failed!\n");
         while (pdm_microphone_start() < 0) { tight_loop_contents(); }
     }
+}
+
+void analog_init(){
+    // Set the ADC pin (e.g., GPIO26)
+    const uint adc_pin = 26; 
+    adc_init();
+    adc_gpio_init(adc_pin);
+    adc_select_input(0); // Select ADC input channel 0 (corresponding to GPIO26)
+    
+
+    // Configure the ADC to free-run mode
+    adc_fifo_setup(
+        true,    // Write each completed conversion to the FIFO
+        true,    // Enable DMA data request (DREQ)
+        1,       // DREQ (data request) when at least 1 sample is available
+        false,   // Disable error bit in the FIFO
+        true     // Enable byte packing (converts 12-bit values to 16-bit values)
+    );
+
+    adc_set_clkdiv(0); // Set clock divider to 0 for maximum sampling rate
+    adc_run(true);     // Start ADC in free-running mode
+
+    // Allocate a DMA channel
+    dma_chan = dma_claim_unused_channel(true); // true means we wait for a channel if none are available
+
+
+    dma_channel_config c = dma_channel_get_default_config(dma_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_16); // 16-bit transfer
+    channel_config_set_read_increment(&c, false); // No read increment (fixed ADC FIFO address)
+    channel_config_set_write_increment(&c, true); // Increment write pointer (buffer address)
+    channel_config_set_dreq(&c, DREQ_ADC); // Set data request to ADC
+
+    dma_channel_configure(
+        dma_chan,
+        &c,
+        capture_buffer_q15, // Destination buffer
+        &adc_hw->fifo,      // ADC FIFO as source
+        INPUT_BUFFER_SIZE,  // Number of transfers
+        false               // Start the DMA immediately?
+    );
+
+}
+
+void pdm_core1_entry(){
+    //Init:
+    // initialize the hanning window and RFFT instance
+    sleep_ms(1000); //delay here so that the dma channel doesn't get claimed..
+    
+
+    multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
+    printf("pdm core1 entry");
+    
+    
+    hanning_window_init_q15(window_q15, FFT_SIZE);
+    arm_rfft_init_q15(&S_q15, FFT_SIZE, 0, 1);
+    
+    // Initialize the Microphone hardware
+    analog_init();
+    //Loop:
+    
+
+    
 
     int starting_bin = 2;
     float low_bins = LOW_BINS;  // 14
@@ -84,8 +141,18 @@ void pdm_core1_entry(){
     
     uint32_t irq_status = 0;
     uint32_t loops_count = 0;
+
+    // Start the DMA transfer
+    dma_channel_start(dma_chan);
     
     while(1) {
+
+        // Wait for DMA transfer to complete
+        if(dma_channel_is_busy(dma_chan)){
+            printf("chan busy");
+            continue;
+        }
+        
         //irq_status = save_and_disable_interrupts();
         
         //cyw43_arch_poll();
@@ -98,13 +165,13 @@ void pdm_core1_entry(){
         loops_count = 0;
 
         // Waiting for new samples
-        while (new_samples_captured == 0) {
+        //while (new_samples_captured == 0) {
             
             //printf("-> ");
             //cyw43_arch_poll();
             //printf("%d| ", ++loops_count);
             //tight_loop_contents();
-        }
+       //}
 
         if(DEBUG_PRINT_MIC_TIMING){
             cur_time = get_absolute_time();
@@ -114,15 +181,23 @@ void pdm_core1_entry(){
         new_samples_captured = 0;
 
         // move input buffer values over by INPUT_BUFFER_SIZE samples
+        printf("copy:");
         arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE));
-
+        
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
+        printf("shift:");
         arm_shift_q15(capture_buffer_q15, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
     
         // apply the DSP pipeline: Hanning Window + FFT
+        printf("mult:");
         arm_mult_q15(window_q15, input_q15, windowed_input_q15, FFT_SIZE);
+        printf("rfft:");
         arm_rfft_q15(&S_q15, windowed_input_q15, fft_q15);
+        printf("complx:");
         arm_cmplx_mag_q15(fft_q15, fft_mag_q15, FFT_MAG_SIZE);
+
+        printf("dma:");
+        dma_channel_start(dma_chan);
 
         if(DEBUG_PRINT_MIC_TIMING){
             cur_time = get_absolute_time();

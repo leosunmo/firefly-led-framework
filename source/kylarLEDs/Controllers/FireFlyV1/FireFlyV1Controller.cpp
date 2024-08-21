@@ -14,7 +14,7 @@ FireFlyV1Controller::FireFlyV1Controller()
     setStatusLED(255);
 
     initCommunication();
-    initBrightness();
+    //initBrightness();
     initHue();
     initPatternButton();
     if(MICROPHONE_ENABLE){
@@ -27,7 +27,12 @@ FireFlyV1Controller::FireFlyV1Controller()
     setStatusLED(25);
 }
 
+
+/**
+ * Brightness 0 to 255
+ */
 void FireFlyV1Controller::setStatusLED(uint8_t brightness){
+    // Brightness is 0 to 255
     static uint8_t initted = 0;
     if(initted == 0){
         // Set GPIO 10 to PWM function
@@ -201,7 +206,7 @@ double FireFlyV1Controller::getBrightness()
 {
     static double brightness = 0;
     static double lastPot = 0;
-    //return 0.7; // Remove this, hardcode high while testing
+    return 0.7; // Remove this, hardcode high while testing
     if (timing->takeMsEvery(10))
     {
         double newPot = analogPot->getValue();
