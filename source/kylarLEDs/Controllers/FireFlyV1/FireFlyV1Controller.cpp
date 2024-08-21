@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 #include "hardware/dma.h"
 #include "hardware/irq.h"
+#include "hardware/pwm.h"
 #include <stdio.h>
 #include "pico/time.h"
 #include "../../../config.h"
@@ -10,9 +11,7 @@ absolute_time_t FireFlyV1Controller::channel_end_times[NUM_STRIPS];
 strip_t FireFlyV1Controller::strips[NUM_STRIPS];
 FireFlyV1Controller::FireFlyV1Controller()
 {
-    gpio_init(status_led);
-    gpio_set_dir(status_led, GPIO_OUT);
-    gpio_put(status_led, 1);
+    setStatusLED(255);
 
     initCommunication();
     initBrightness();
@@ -24,6 +23,29 @@ FireFlyV1Controller::FireFlyV1Controller()
     initOutput();
 
     this->timing = new Timing();
+
+    setStatusLED(25);
+}
+
+void FireFlyV1Controller::setStatusLED(uint8_t brightness){
+    static uint8_t initted = 0;
+    if(initted == 0){
+        // Set GPIO 10 to PWM function
+        gpio_set_function(10, GPIO_FUNC_PWM);
+    }
+    // Find the PWM slice number that corresponds to GPIO 10
+    uint slice_num = pwm_gpio_to_slice_num(10);
+
+    // Set PWM clock divider (optional)
+    pwm_set_clkdiv(slice_num, 4.0f);
+
+    // Set the PWM frequency and duty cycle
+    pwm_set_wrap(slice_num, 255);    // Wrap value for 8-bit resolution
+    pwm_set_chan_level(slice_num, pwm_gpio_to_channel(10), brightness);  // 50% duty cycle
+
+    // Enable the PWM output
+    pwm_set_enabled(slice_num, true);
+    
 }
 
 void FireFlyV1Controller::initDMA(PIO pio, uint sm)
