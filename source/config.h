@@ -27,7 +27,7 @@
  * WiFi Enable: Turn on Wifi in Core1, but host a network + website in Access Point mode
  */
 #define MICROPHONE_ENABLE 0
-#define MQTT_ENABLE 1 // picow only.
+#define MQTT_ENABLE 0 // picow only.
 #define WIFI_ENABLE 0 // picow only.
 
 
