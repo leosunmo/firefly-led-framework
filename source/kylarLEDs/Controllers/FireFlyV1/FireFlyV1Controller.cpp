@@ -27,7 +27,12 @@ FireFlyV1Controller::FireFlyV1Controller()
     setStatusLED(25);
 }
 
+
+/**
+ * Brightness 0 to 255
+ */
 void FireFlyV1Controller::setStatusLED(uint8_t brightness){
+    // Brightness is 0 to 255
     static uint8_t initted = 0;
     if(initted == 0){
         // Set GPIO 10 to PWM function
@@ -132,7 +137,6 @@ void FireFlyV1Controller::initCommunication()
           printf("system clock now 250MHz\n");
         }
     }
-    
 }
 
 uint64_t FireFlyV1Controller::getCurrentTimeMicros()
@@ -176,7 +180,6 @@ void FireFlyV1Controller::outputLEDs(uint8_t strip_i, uint8_t *leds, uint32_t N)
         strip->outPointer[i] = bitflipLUT[pixels[i]];
         //strip->outPointer[i] = ((uint32_t)pixels[i]) << 24; // Old method
     }
-    
 
     dma_channel_config c = dma_channel_get_default_config(dma_chan);
     channel_config_set_read_increment(&c, true);
@@ -190,7 +193,6 @@ void FireFlyV1Controller::outputLEDs(uint8_t strip_i, uint8_t *leds, uint32_t N)
                           true                      // Start immediately
     );
 
-  
     // while(numBytes--){
     //     // Bits for transmission must be shifted to top 8 bits
     //     pio_sm_put_blocking(PX_pio, strip, ((uint32_t)*pixels++)<< 24);
@@ -201,7 +203,7 @@ double FireFlyV1Controller::getBrightness()
 {
     static double brightness = 0;
     static double lastPot = 0;
-    //return 0.7; // Remove this, hardcode high while testing
+    // return 0.7; // Remove this, hardcode high while testing // CJ_ADC_TEST
     if (timing->takeMsEvery(10))
     {
         double newPot = analogPot->getValue();

@@ -26,7 +26,7 @@
  * MQTT Enable: Turn on Wifi in Core1, but for MQTT + Home Assistant in Station mode
  * WiFi Enable: Turn on Wifi in Core1, but host a network + website in Access Point mode
  */
-#define MICROPHONE_ENABLE 0
+#define MICROPHONE_ENABLE 1
 #define MQTT_ENABLE 0 // picow only.
 #define WIFI_ENABLE 0 // picow only.
 
@@ -70,8 +70,8 @@
 ////////////////////////////////////////////////////////////
 #define DEBUG_DELAY_MAIN 0 // Used to give time to start Serial Monitoring
 #define DEBUG_PRINT_MAIN 0
-#define DEBUG_PRINT_MIC 0
-#define DEBUG_PRINT_MIC_TIMING 0
+#define DEBUG_PRINT_MIC 1
+#define DEBUG_PRINT_MIC_TIMING 1
 #define DEBUG_PRINT_FLASH 0
 #define DEBUG_PRINT_OTHER 0
 

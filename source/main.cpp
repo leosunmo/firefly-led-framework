@@ -72,7 +72,7 @@ int main(){
     currentPattern->init();
 
     ExecTimer *timer = new ExecTimer();
-    multicore_lockout_victim_init();        // This tells core0 to stop when data flashing on Core1 starts
+    // multicore_lockout_victim_init();        // This tells core0 to stop when data flashing on Core1 starts
     //Main loop
     while(1){
         if(DEBUG_PRINT_MAIN){

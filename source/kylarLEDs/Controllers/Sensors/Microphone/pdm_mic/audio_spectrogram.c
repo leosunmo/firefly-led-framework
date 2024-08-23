@@ -2,6 +2,21 @@
 #include "pico/time.h"
 #include "../../../FireFlyW/WiFi/wifi.h"
 #include "../../../../../config.h"
+#include "hardware/adc.h"
+#include "hardware/dma.h"
+
+    // adc_pin = 26;
+    // adc = 0;
+    // adc_init();
+    // adc_gpio_init(pin);
+    // adc_select_input(adc);
+
+    //adc_select_input(adc);
+    //adc_read(); // returns 0 to 4095
+
+#define ADC_VREF 3.3
+#define ADC_RANGE (1 << 12)
+#define ADC_CONVERT (ADC_VREF / (ADC_RANGE - 1))
 
 // microphone configuration
 const struct pdm_microphone_config pdm_config = {
@@ -40,27 +55,10 @@ const int exec_timing = 1;
 absolute_time_t new_time; //Microseconds
 absolute_time_t cur_time;
 absolute_time_t start_time;
-void pdm_core1_entry(){
-    //Init:
-    // initialize the hanning window and RFFT instance
-    sleep_ms(10); //delay here so that the dma channel doesn't get claimed..
 
-    // Unfortunately, this is where I will initialize wifi
-    // I want it to be on core1
-    // Note: This is just kept as an idea now, WIFI_ENABLE is not active currently.
-    // if(WIFI_ENABLE){
-    //     wifi_init();
-    //     while(1){
-    //         cyw43_arch_poll();
-    //     }
-    // }
-    
-    hanning_window_init_q15(window_q15, FFT_SIZE);
-    arm_rfft_init_q15(&S_q15, FFT_SIZE, 0, 1);
+int dma_chan;
 
-    multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
-
-    //Loop:
+void pdm_init(){
     // initialize the PDM microphone
     if (pdm_microphone_init(&pdm_config) < 0) {
         printf("PDM microphone initialization failed!\n");
@@ -76,65 +74,154 @@ void pdm_core1_entry(){
         printf("PDM microphone start failed!\n");
         while (pdm_microphone_start() < 0) { tight_loop_contents(); }
     }
+}
+
+void __not_in_flash_func(adc_capture)(uint16_t *buf, size_t count) {
+    adc_fifo_setup(true, false, 0, false, false);
+    adc_run(true);
+    for (int i = 0; i < count; i = i + 1)
+        buf[i] = adc_fifo_get_blocking();
+    adc_run(false);
+    adc_fifo_drain();
+}
+
+void analog_init(){
+    // Set the ADC pin (e.g., GPIO26) // CJ_ADC_TEST: For v0, Pot pin is 27; Enc
+    const uint adc_pin = 26;
+    adc_init();
+    adc_gpio_init(adc_pin);
+    adc_select_input(0); // Select ADC input channel 0 (corresponding to GPIO26) // CJ_ADC_TEST: For v0, ADC channel is 1
+
+    // Configure the ADC to free-run mode
+    adc_fifo_setup(
+        true,    // Write each completed conversion to the FIFO
+        true,    // Enable DMA data request (DREQ)
+        1,       // DREQ (data request) when at least 1 sample is available
+        false,   // Disable error bit in the FIFO
+        true     // Enable byte packing (converts 12-bit values to 16-bit values)
+    );
+
+    adc_set_clkdiv(0); // Set clock divider to 0 for maximum sampling rate
+#if 1
+    // adc_run(true);     // Start ADC in free-running mode
+
+    // Allocate a DMA channel
+    dma_chan = dma_claim_unused_channel(true); // true means we wait for a channel if none are available
+
+    dma_channel_config c = dma_channel_get_default_config(dma_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_16); // 16-bit transfer
+    channel_config_set_read_increment(&c, false); // No read increment (fixed ADC FIFO address)
+    channel_config_set_write_increment(&c, true); // Increment write pointer (buffer address)
+    channel_config_set_dreq(&c, DREQ_ADC); // Set data request to ADC
+
+    dma_channel_configure(
+        dma_chan,
+        &c,
+        capture_buffer_q15, // Destination buffer
+        &adc_hw->fifo,      // ADC FIFO as source
+        INPUT_BUFFER_SIZE,  // Number of transfers
+        false               // Start the DMA immediately?
+    );
+#endif
+}
+
+void pdm_core1_entry(){
+    //Init:
+    // initialize the hanning window and RFFT instance
+    sleep_ms(1000); //delay here so that the dma channel doesn't get claimed..
+
+    // multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
+    printf("pdm core1 entry");
+
+    hanning_window_init_q15(window_q15, FFT_SIZE);
+    arm_rfft_init_q15(&S_q15, FFT_SIZE, 0, 1);
+
+    // Initialize the Microphone hardware
+    analog_init();
+    //Loop:
 
     int starting_bin = 2;
     float low_bins = LOW_BINS;  // 14
     float high_bins = SKIP_BINS; // 240 // currently used as "skip" bins
     float total_bins = low_bins + high_bins;
-    
+
     uint32_t irq_status = 0;
     uint32_t loops_count = 0;
-    
+
+    // Start the DMA transfer
+    // dma_channel_start(dma_chan);
+    uint adc_raw;
     while(1) {
+        adc_capture( capture_buffer_q15, INPUT_BUFFER_SIZE );
+        // adc_raw = adc_read(); // raw voltage from ADC
+        // printf("%.2f\n", adc_raw * ADC_CONVERT);
+        // sleep_ms(10);
+        for (int i = 0; i < INPUT_BUFFER_SIZE; i = i + 1)
+            // printf("%03x\n", capture_buffer_q15[i]);
+            printf("%.2f\n", capture_buffer_q15[i] * ADC_CONVERT);
+        // break;
+#if 1
+        // Wait for DMA transfer to complete
+        // if(dma_channel_is_busy(dma_chan)){
+        //     printf("chan busy");
+        //     continue;
+        // }
+
         //irq_status = save_and_disable_interrupts();
-        
+
         //cyw43_arch_poll();
         //restore_interrupts(irq_status);
-        
-        if(DEBUG_PRINT_MIC_TIMING){
-            new_time = get_absolute_time(); //Microseconds
-            start_time = new_time;
-        }
-        loops_count = 0;
+
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     new_time = get_absolute_time(); //Microseconds
+        //     start_time = new_time;
+        // }
+        // loops_count = 0;
 
         // Waiting for new samples
-        while (new_samples_captured == 0) {
-            
+        //while (new_samples_captured == 0) {
             //printf("-> ");
             //cyw43_arch_poll();
             //printf("%d| ", ++loops_count);
             //tight_loop_contents();
-        }
+       //}
 
-        if(DEBUG_PRINT_MIC_TIMING){
-            cur_time = get_absolute_time();
-            printf("wait = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-            start_time = get_absolute_time();
-        }
-        new_samples_captured = 0;
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     cur_time = get_absolute_time();
+        //     printf("wait = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
+        //     start_time = get_absolute_time();
+        // }
+        // new_samples_captured = 0;
 
         // move input buffer values over by INPUT_BUFFER_SIZE samples
+        printf("copy:");
         arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE));
 
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
+        printf("shift:");
         arm_shift_q15(capture_buffer_q15, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
-    
+
         // apply the DSP pipeline: Hanning Window + FFT
+        printf("mult:");
         arm_mult_q15(window_q15, input_q15, windowed_input_q15, FFT_SIZE);
+        printf("rfft:");
         arm_rfft_q15(&S_q15, windowed_input_q15, fft_q15);
+        printf("complx:");
         arm_cmplx_mag_q15(fft_q15, fft_mag_q15, FFT_MAG_SIZE);
 
-        if(DEBUG_PRINT_MIC_TIMING){
-            cur_time = get_absolute_time();
-            printf("arm stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-            start_time = get_absolute_time();
-        }
-        
+        // printf("dma:");
+        // dma_channel_start(dma_chan);
+
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     cur_time = get_absolute_time();
+        //     printf("arm stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
+        //     start_time = get_absolute_time();
+        // }
 
         // Audio processing:
-        if(print){
-            printf("|");
-        }
+        // if(print){
+        //     printf("|");
+        // }
         temp_freq_data.freq_energy = 0;
         temp_freq_data.low_freq_energy = 0;
         temp_freq_data.high_freq_energy = 0;
@@ -145,7 +232,6 @@ void pdm_core1_entry(){
             q15_t magnitude = fft_mag_q15[i];
             int bin = i-starting_bin;
 
-            
             if(bin <= low_bins){
                 //LOWS
                 temp_freq_data.freq_energy += magnitude / total_bins;
@@ -159,8 +245,7 @@ void pdm_core1_entry(){
                 temp_freq_data.freq_energy += magnitude / total_bins;
                 temp_freq_data.high_freq_energy += magnitude / 10.0; //high_bins;
             }
-                
-            
+
             // scale it between 0 to 255 to map, so we can map it to a color based on the color map
             if(DEBUG_PRINT_MIC){
                 int color_index = (magnitude / FFT_MAG_MAX) * 255;
@@ -175,17 +260,16 @@ void pdm_core1_entry(){
                 }
                 printf("%c", symbol);
             }
-            
         }
         if(DEBUG_PRINT_MIC){
             printf("|\n");
         }
 
-        if(DEBUG_PRINT_MIC_TIMING){
-            //cur_time = get_absolute_time();
-            printf("sum bins = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
-            start_time = get_absolute_time();
-        }
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     //cur_time = get_absolute_time();
+        //     printf("sum bins = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
+        //     start_time = get_absolute_time();
+        // }
 
         freq_data.freq_energy = temp_freq_data.freq_energy;
         freq_data.low_freq_energy = temp_freq_data.low_freq_energy;
@@ -202,6 +286,7 @@ void pdm_core1_entry(){
         if(DEBUG_PRINT_MIC_TIMING){
             printf("sound FPS = %.1f / sec\n\n", 1000000.0/(double)(to_us_since_boot(get_absolute_time()) - to_us_since_boot(new_time)));
         }
+#endif
     }
 }
 
@@ -210,7 +295,7 @@ void updateSoundProfileLow() {
     //Only doing LOWS for now...
     //Update min
     double coef = 10.0;
-    
+
     if(freq_data.low_freq_energy < sound_profile.low_min){
         //The frequency is lower!
         sound_profile.low_min = freq_data.low_freq_energy;//(sound_profile.low_min*coef + freq_data.low_freq_energy)/(coef+1);
@@ -382,7 +467,7 @@ void hanning_window_init_q15(q15_t* window, size_t size) {
 void on_pdm_samples_ready()
 {
     // callback from library when all the samples in the library
-    // internal sample buffer are ready for reading 
+    // internal sample buffer are ready for reading
     new_samples_captured = pdm_microphone_read(capture_buffer_q15, FFT_MAG_SIZE);
 }
 
@@ -415,10 +500,10 @@ int freq_to_bin(float freq){
 float bin_to_freq(int bin){
     float freq = 15.628*bin + 0.286;
     if(freq < 0){
-        return 0; 
+        return 0;
     }
     if(freq >= 32000){
-        return 32000; 
+        return 32000;
     }
 
     return freq;
