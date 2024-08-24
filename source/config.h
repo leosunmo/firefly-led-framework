@@ -12,6 +12,7 @@
  * TODO: Make the strips able to turn on / off output pins.
  * 
  */
+#define PX_PINS 3
 #define NUM_STRIPS 3
 #define NUM_LEDS 64
 
