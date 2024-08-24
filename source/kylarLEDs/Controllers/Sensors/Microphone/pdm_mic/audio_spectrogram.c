@@ -34,8 +34,11 @@ const struct pdm_microphone_config pdm_config = {
     .sample_buffer_size = INPUT_BUFFER_SIZE,
 };
 
-q15_t capture_buffer_q15[INPUT_BUFFER_SIZE];
+
+q15_t capture_buffer_q15_a[INPUT_BUFFER_SIZE];
+q15_t capture_buffer_q15_b[INPUT_BUFFER_SIZE];
 volatile int new_samples_captured = 0;
+bool a_or_b = 0; // 1=a, 0=b
 
 q15_t input_q15[FFT_SIZE];
 q15_t window_q15[FFT_SIZE];
@@ -75,15 +78,43 @@ void pdm_init(){
         while (pdm_microphone_start() < 0) { tight_loop_contents(); }
     }
 }
+//__not_in_flash_func
+void adc_capture(uint16_t *buf, size_t count) {
 
-void __not_in_flash_func(adc_capture)(uint16_t *buf, size_t count) {
-    adc_fifo_setup(true, false, 0, false, false);
-    adc_run(true);
     // for (int i = 0; i < count; i = i + 1)
     //     buf[i] = adc_fifo_get_blocking();
     dma_channel_wait_for_finish_blocking(dma_chan);
-    adc_run(false);
     adc_fifo_drain();
+    adc_run(true);
+    dma_channel_start(dma_chan);
+    
+}
+
+void analog_dma_start(bool ab) {
+    /**
+     * Concigure the DMA to transfer from the ADC to the capture_buffer
+     */
+    dma_channel_config c = dma_channel_get_default_config(dma_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_16); // 16-bit transfer
+    channel_config_set_read_increment(&c, false); // No read increment (fixed ADC FIFO address)
+    channel_config_set_write_increment(&c, true); // Increment write pointer (buffer address)
+    channel_config_set_dreq(&c, DREQ_ADC); // Set data request to ADC
+
+    dma_channel_configure(
+        dma_chan,
+        &c,
+        ab ? capture_buffer_q15_a : capture_buffer_q15_b, // Destination buffer
+        &adc_hw->fifo,      // ADC FIFO as source
+        INPUT_BUFFER_SIZE,  // Number of transfers
+        true               // Start the DMA immediately?
+    );
+}
+
+q15_t* capture_buffer(){
+    /*
+     * Return the current capture buffer, should be most recently filled by DMA.
+     */
+    return a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
 }
 
 void analog_init(){
@@ -99,37 +130,22 @@ void analog_init(){
         true,    // Enable DMA data request (DREQ)
         1,       // DREQ (data request) when at least 1 sample is available
         false,   // Disable error bit in the FIFO
-        true     // Enable byte packing (converts 12-bit values to 16-bit values)
+        false     // Disable byte packing.
     );
 
     adc_set_clkdiv(4); // Set clock divider to 0 for maximum sampling rate
-#if 1
+
     // adc_run(true);     // Start ADC in free-running mode
 
     // Allocate a DMA channel
     dma_chan = dma_claim_unused_channel(true); // true means we wait for a channel if none are available
-
-    dma_channel_config c = dma_channel_get_default_config(dma_chan);
-    channel_config_set_transfer_data_size(&c, DMA_SIZE_16); // 16-bit transfer
-    channel_config_set_read_increment(&c, false); // No read increment (fixed ADC FIFO address)
-    channel_config_set_write_increment(&c, true); // Increment write pointer (buffer address)
-    channel_config_set_dreq(&c, DREQ_ADC); // Set data request to ADC
-
-    dma_channel_configure(
-        dma_chan,
-        &c,
-        capture_buffer_q15, // Destination buffer
-        &adc_hw->fifo,      // ADC FIFO as source
-        INPUT_BUFFER_SIZE,  // Number of transfers
-        false               // Start the DMA immediately?
-    );
-#endif
+    adc_run(true);
 }
 
 void pdm_core1_entry(){
     //Init:
     // initialize the hanning window and RFFT instance
-    sleep_ms(1000); //delay here so that the dma channel doesn't get claimed..
+    sleep_ms(50); //delay here so that the dma channel doesn't get claimed..
 
     // multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
     printf("pdm core1 entry");
@@ -149,15 +165,22 @@ void pdm_core1_entry(){
     uint32_t irq_status = 0;
     uint32_t loops_count = 0;
 
-    // Start the DMA transfer
-    // dma_channel_start(dma_chan);
+    
     uint adc_raw;
+    a_or_b = 0;
+    analog_dma_start(a_or_b);
     while(1) {
-        if(DEBUG_PRINT_MIC_TIMING){
-            new_time = get_absolute_time(); //Microseconds
-            start_time = get_absolute_time();
-        }
-        adc_capture( capture_buffer_q15, INPUT_BUFFER_SIZE );
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     new_time = get_absolute_time(); //Microseconds
+        //     start_time = get_absolute_time();
+        // }
+        //adc_capture( capture_buffer_q15, INPUT_BUFFER_SIZE );
+
+        // a_or_b = 0
+        dma_channel_wait_for_finish_blocking(dma_chan);
+        // We filled the capture_buffer()
+        adc_fifo_drain();
+        analog_dma_start(!a_or_b); // Start the opposite channel
         // if(DEBUG_PRINT_MIC_TIMING){
         //     cur_time = get_absolute_time();
         //     printf("adc_capture = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
@@ -166,12 +189,12 @@ void pdm_core1_entry(){
         // adc_raw = adc_read(); // raw voltage from ADC
         // printf("%.2f\n", adc_raw * ADC_CONVERT);
         // sleep_ms(10);
-        //for (int i = 0; i < INPUT_BUFFER_SIZE; i = i + 1){
-            // printf("%03x\n", capture_buffer_q15[i]);
-            //printf("%.2f\n", capture_buffer_q15[i] * ADC_CONVERT);
+        // for (int i = 0; i < INPUT_BUFFER_SIZE; i = i + 1){
+        //     printf("%03x\n", capture_buffer_q15[i]);
+        //     printf("%.2f\n", capture_buffer_q15[i] * ADC_CONVERT);
         // break;
-        //}
-#if 1
+        // }
+
         // Wait for DMA transfer to complete
         // if(dma_channel_is_busy(dma_chan)){
         //     printf("chan busy");
@@ -205,9 +228,9 @@ void pdm_core1_entry(){
         // new_samples_captured = 0;
 
         // move input buffer values over by INPUT_BUFFER_SIZE samples
-        if(DEBUG_PRINT_MIC_TIMING){
-            start_time = get_absolute_time();
-        }
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     start_time = get_absolute_time();
+        // }
         
         
         ///printf("copy:");
@@ -215,7 +238,8 @@ void pdm_core1_entry(){
         
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
         //printf("shift:");
-        arm_shift_q15(capture_buffer_q15, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+        arm_shift_q15(capture_buffer(), INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+        a_or_b = !a_or_b; // Set this for next time.
         // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
         //     printf("%d",capture_buffer_q15[in_buf_i]); // confirmed we get capture buffer
         // }
@@ -261,9 +285,9 @@ void pdm_core1_entry(){
         temp_freq_data.freq_energy = 0;
         temp_freq_data.low_freq_energy = 0;
         temp_freq_data.high_freq_energy = 0;
-        if(DEBUG_PRINT_MIC_TIMING){
-            start_time = get_absolute_time();
-        }
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     start_time = get_absolute_time();
+        // }
         // map the FFT magnitude values to pixel values
         for (int i = starting_bin; i < 100; i++) {
             // get the current FFT magnitude value
@@ -324,7 +348,7 @@ void pdm_core1_entry(){
         // if(DEBUG_PRINT_MIC_TIMING){
         //     printf("sound FPS = %.1f / sec\n\n", 1000000.0/(double)(to_us_since_boot(get_absolute_time()) - to_us_since_boot(new_time)));
         // }
-#endif
+
     }
 }
 
@@ -506,7 +530,7 @@ void on_pdm_samples_ready()
 {
     // callback from library when all the samples in the library
     // internal sample buffer are ready for reading
-    new_samples_captured = pdm_microphone_read(capture_buffer_q15, FFT_MAG_SIZE);
+    new_samples_captured = pdm_microphone_read(capture_buffer_q15_a, FFT_MAG_SIZE);
 }
 
 void start_pdm_mic(){
