@@ -43,10 +43,10 @@ int main(){
     //ADD YOUR PATTERNS HERE!
     //ex. patterns->push_back(new ExamplePattern());
     patterns->push_back(new Raindrop());
+    patterns->push_back(new SpaceX());
     patterns->push_back(new FireFlies());
     patterns->push_back(new WirelessPattern());
     patterns->push_back(new HeartPattern());
-    patterns->push_back(new SpaceX());
     patterns->push_back(new CirclesPattern());
     patterns->push_back(new Shakeel());
     patterns->push_back(new ShakeelFlash());

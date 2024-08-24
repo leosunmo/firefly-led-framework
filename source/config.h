@@ -38,7 +38,7 @@
 /**
  * Signal Processing Options
  */
-#define LOW_BINS 20
+#define LOW_BINS 60
 #define SKIP_BINS 0
 
 
@@ -82,4 +82,4 @@
  * OVERCLOCK: 0 - Clock default of 133MHz
  *            1 - Clock set to 250MHz
  */
-#define OVERCLOCK 0
+#define OVERCLOCK 1

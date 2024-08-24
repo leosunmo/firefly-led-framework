@@ -12,8 +12,8 @@
 #define SAMPLE_RATE       32000
 #define FFT_SIZE          2048
 #define FFT_MAG_SIZE      FFT_SIZE/2
-#define INPUT_BUFFER_SIZE 512
-#define INPUT_SHIFT       2 // 2
+#define INPUT_BUFFER_SIZE 1024
+#define INPUT_SHIFT       4 // 2
 #define FFT_BINS_SKIP     0
 #define FFT_MAG_MAX       2000.0
 
