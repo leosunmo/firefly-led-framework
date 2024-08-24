@@ -13,7 +13,7 @@
 #define FFT_SIZE          2048
 #define FFT_MAG_SIZE      FFT_SIZE/2
 #define INPUT_BUFFER_SIZE 1024
-#define INPUT_SHIFT       4 // 2
+#define INPUT_SHIFT       4 // 2 // TODO: Replace this with something more adjustable...
 #define FFT_BINS_SKIP     0
 #define FFT_MAG_MAX       2000.0
 

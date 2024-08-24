@@ -127,7 +127,7 @@ void analog_init(){
         false     // Disable byte packing.
     );
 
-    adc_set_clkdiv(4); // Set clock divider to 0 for maximum sampling rate
+    adc_set_clkdiv(160); // Set clock divider to 0 for maximum sampling rate
 
     // adc_run(true);     // Start ADC in free-running mode
 
@@ -135,6 +135,7 @@ void analog_init(){
     dma_chan = dma_claim_unused_channel(true); // true means we wait for a channel if none are available
     adc_run(true);
 }
+
 
 void pdm_core1_entry(){
     //Init:
@@ -173,9 +174,9 @@ void pdm_core1_entry(){
     timer_set_name(timer, profile, "Profile");
     
 
-    int starting_bin = 2;
+    int starting_bin = 3;
     float low_bins = LOW_BINS;  // 14
-    float high_bins = SKIP_BINS; // 240 // currently used as "skip" bins
+    float high_bins = HIGH_BINS; // 240 
     float total_bins = low_bins + high_bins;
 
     uint32_t irq_status = 0;
@@ -209,6 +210,7 @@ void pdm_core1_entry(){
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
         timer_start(timer, arm_shift);
         arm_shift_q15(current_capture_buffer, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+        //arm_shift_q15(current_capture_buffer, INPUT_SHIFT, input_q15, INPUT_BUFFER_SIZE);
         timer_stop(timer, arm_shift);
 
 
@@ -233,10 +235,17 @@ void pdm_core1_entry(){
 
         timer_start(timer, sum_bins);
         // map the FFT magnitude values to pixel values
-        for (int i = starting_bin; i < 120; i++) {
+        int highest_bin = 0;
+        int highest_bin_mag = 0;
+        for (int i = starting_bin; i < total_bins; i++) {
             // get the current FFT magnitude value
             q15_t magnitude = fft_mag_q15[i];
             int bin = i-starting_bin;
+
+            if(magnitude > highest_bin_mag){
+                highest_bin = i;
+                highest_bin_mag = magnitude;
+            }
 
             if(bin <= low_bins){
                 //LOWS
@@ -244,32 +253,37 @@ void pdm_core1_entry(){
                 temp_freq_data.low_freq_energy += magnitude / low_bins;
             }else if(bin - low_bins <= high_bins){
                 //HIGHS
-                //(skip)
+                //temp_freq_data.freq_energy += magnitude / total_bins;
+                //temp_freq_data.high_freq_energy += magnitude / high_bins;
             }else{
                 // Out of range
-                //(high after skip)
-                temp_freq_data.freq_energy += magnitude / total_bins;
-                temp_freq_data.high_freq_energy += magnitude / 10.0; //high_bins;
+                
             }
-            // Visualize the bins:
-            // scale it between 0 to 255 to map, so we can map it to a color based on the color map
-            // if(DEBUG_PRINT_MIC){
-            //     int color_index = (magnitude / FFT_MAG_MAX) * 255;
-            //     char symbol = ' ';
-            //     if (color_index > 160) {
-            //         color_index = 255;
-            //         symbol = 'X';
-            //     }else if(color_index > 80) {
-            //         symbol= 'x';
-            //     }else if(color_index > 40) {
-            //         symbol = '.';
-            //     }
-            //     printf("%c", symbol);
-            // }
+            
         }
+        //printf("Highest bin = %d at %d\n", highest_bin, highest_bin_mag);
         timer_stop(timer, sum_bins);
+
+        // Visualize the bins:
+#if 0
+        printf("|");
+        for (int i = starting_bin; i < total_bins; i++){
+            q15_t magnitude = fft_mag_q15[i];
+            double bin_intensity = (magnitude / (double) highest_bin_mag);
+            char symbol = ' ';
+            if (bin_intensity > 0.8) {
+                symbol = 'X';
+            }else if(bin_intensity > 0.5) {
+                symbol= 'x';
+            }else if(bin_intensity > 0.1) {
+                symbol = '.';
+            }
+            printf("%c", symbol);
+        }
+        printf("|\n");
+#endif
         // if(DEBUG_PRINT_MIC){
-        //     printf("|\n");
+        //     
         // }
 
         freq_data.freq_energy = temp_freq_data.freq_energy;
@@ -278,8 +292,8 @@ void pdm_core1_entry(){
         //printf("CORE1 %.0f %.0f %.0f\n", freq_data.low_freq_energy, freq_data.high_freq_energy, freq_data.freq_energy);
         timer_start(timer, profile);
         updateSoundProfileLow();
-        timer_stop(timer, profile);
         //updateSoundProfileHigh();
+        timer_stop(timer, profile);
 
         timer_stop(timer, sound_fps);
         timer_print(timer);

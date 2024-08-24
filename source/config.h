@@ -41,6 +41,7 @@
  */
 #define LOW_BINS 60
 #define SKIP_BINS 0
+#define HIGH_BINS 200
 
 
 ////////////////////////////////////////////////////////////
