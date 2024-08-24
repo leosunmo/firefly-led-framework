@@ -8,6 +8,7 @@
 #include "../../../../config.h"
 
 device_info_t device_info;
+user_info_t user_info;
 
 void print_flash_sector(uint32_t offset) {
     const uint8_t *flash_data = (const uint8_t *)(XIP_BASE + offset);
@@ -56,7 +57,6 @@ void flash_write_device_info() {
         printf("Flash after: ");
         print_flash_sector(FLASH_TARGET_OFFSET);
     }
-    
 }
 
 // Function to read device information from flash memory
@@ -74,4 +74,26 @@ void flash_read_device_info() {
     }
     printf("device_info.entity %s\n\r", device_info.entity);
     printf("device_info.name %s\n\r", device_info.name);
+}
+
+
+// Function to save HSV and Pattern index information to flash memory
+void flash_write_user_info() {
+    user_info_t user_info;
+    uint8_t flash_data[FLASH_SECTOR_SIZE];
+    memset(flash_data, 0xFF, FLASH_SECTOR_SIZE);
+    memcpy(flash_data, &user_info, sizeof(user_info));
+
+    uint32_t ints = save_and_disable_interrupts();
+    multicore_lockout_start_blocking();
+    flash_range_erase(FLASH_HSV_OFFSET, FLASH_SECTOR_SIZE);
+    flash_range_program(FLASH_HSV_OFFSET, flash_data, FLASH_SECTOR_SIZE);
+    multicore_lockout_end_blocking();
+    restore_interrupts(ints);
+}
+
+// Function to read HSV and Pattern index information from flash memory
+void flash_read_user_info() {
+    const uint8_t *flash_data = (const uint8_t *)(XIP_BASE + FLASH_HSV_OFFSET);
+    memcpy(&user_info, flash_data, sizeof(user_info_t));
 }

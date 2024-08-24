@@ -38,7 +38,6 @@ void LEDs::setHSV(int i, hsv_t color){
             //irgb = strip->setHSV(i, color);
             strip->setRGBUnprotected(irgb.i, irgb.rgb);  // This skips the HSV conversion, which saves time
         }
-        
     }
 }
 

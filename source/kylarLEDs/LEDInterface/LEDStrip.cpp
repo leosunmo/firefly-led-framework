@@ -2,6 +2,10 @@
 #include "../Utility/ExecTimer.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "../Controllers/Sensors/HomeAssistant/flash.h"
+
+extern user_info_t user_info;
+
 LEDStrip::LEDStrip(uint8_t strip){
     rgb_t off = {0, 0, 0};
     this->strip = strip;
@@ -13,7 +17,6 @@ LEDStrip::LEDStrip(uint8_t strip){
         ledsArray[i*3+2] = 0;
         printf("size of ledsarray = %d\n", sizeof(ledsArray));
     }
-    
 }
 
 
@@ -31,6 +34,7 @@ void LEDStrip::setRGB(int index, rgb_t rgb){
 
 
 irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
+    static int flag = 1;
     if(index >= numLEDs){
         index %= numLEDs;
     }
@@ -41,8 +45,22 @@ irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
     }
     //ExecTimer *timer = new ExecTimer();
     //timer->start("setHSV");
-    
-    hsv.h += ledController->getHue();
+    // Call read saved hue from flash here : CJ_TEST
+    if(DEBUG_USE_FLASH){
+        if(flag){
+            flag = 0;
+            hsv.h += user_info.hue;
+        }
+    } else {
+        hsv.h += ledController->getHue();
+    }
+
+    if(DEBUG_USE_FLASH){
+        if(hsv.h != user_info.hue){
+            user_info.hue = hsv.h;
+            flash_write_user_info();
+        }
+    }
     //timer->add("ledController->getHue()");
 
     hsv.h = ColorUtil::sanitizeH(hsv.h);
@@ -57,7 +75,7 @@ irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
     rgb8_t rgb8;
     ColorUtil::fast_hsv2rgb_32bit(hsv16.h, hsv16.s, hsv16.v, &rgb8.r, &rgb8.g, &rgb8.b);
     //timer->add("::hsv2rgb(hsv)");
-    
+
     changesArray[index]->combine(rgb8);
     //timer->add("changesArray[index]->combine(rgb)");
 
@@ -81,7 +99,7 @@ void LEDStrip::apply(){
     uint8_t r, g, b;
     rgb8_t rgb;
     float brightness = ledController->getBrightness();
-    
+
     uint8_t brightnessLUT[256];
     uint32_t brightnessInt = (uint32_t)(brightness * 1000.0);
     ExecTimer *timer = new ExecTimer();
@@ -138,8 +156,8 @@ void LEDStrip::giveController(Controller * ledController){
 
 double LEDStrip::num(){ //Get num LEDs
     return (double)numLEDs;
-} 
+}
 void LEDStrip::setNum(uint16_t num){ //set number of LEDs
     numLEDs = num;
     clear();
-} 
+}

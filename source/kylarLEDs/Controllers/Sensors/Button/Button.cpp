@@ -4,9 +4,12 @@
 #include "pico/time.h"
 #include "stdio.h"
 #include "../Encoder/Encoder.h"
+#include "../HomeAssistant/flash.h"
+#include "../../../../config.h"
 
 uint8_t Button::pin;
 uint32_t* Button::patternIndex;
+extern user_info_t user_info;
 
 void Button::interrupt(uint gpio, uint32_t event){
     if(gpio != pin){
@@ -16,22 +19,24 @@ void Button::interrupt(uint gpio, uint32_t event){
     static absolute_time_t last_time = {0};
     static int press_state = 0;// 0 Waiting for press, 1 waiting for release
     absolute_time_t new_time = get_absolute_time();
-    
 
     if(absolute_time_diff_us(last_time, new_time) < 30000){ //30ms
         return;
     }
 
-
     if(press_state == 0){
         (*Button::patternIndex)++; // Increment pattern index
+        // Call save new patternIndex to flash here : CJ_TEST
+        if(DEBUG_USE_FLASH){
+            user_info.patternIndex = (*Button::patternIndex);
+            flash_write_user_info();
+        }
         press_state = 1;
     }else{
         press_state = 0;
     }
 
     last_time = new_time;
-    
 }
 
 void Button::givePatternIndex(uint32_t *patternIndex){

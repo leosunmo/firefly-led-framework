@@ -20,23 +20,27 @@
 #include "pico/time.h"
 #include "config.h"
 #include "pico/multicore.h"
+#include "kylarLEDs/Controllers/Sensors/HomeAssistant/flash.h"
 
 
 using namespace std;
+
+extern user_info_t user_info;
+
 int main(){
     if(DEBUG_DELAY_MAIN) {
         sleep_ms(3000);
     }
-    
+
     // Initialize framework infrastructure
     Controller *ledController = new FireFlyV1Controller();
-    
+
     EffectEngine *effectEngine = new EffectEngine();
     LEDs::init(NUM_STRIPS); // Initializing # of outputs
     LEDs::setNum(NUM_LEDS); // Setting all strips to 120 LEDs
-    
+
     Effect::giveEngine(effectEngine);
-    
+
     vector<Pattern*> *patterns = new vector<Pattern*>();
     //Push back all the patterns you want!
     //ADD YOUR PATTERNS HERE!
@@ -49,14 +53,18 @@ int main(){
     patterns->push_back(new Shakeel());
     patterns->push_back(new ShakeelFlash());
 
-
     //Initialize main loop variables
     uint32_t numPatterns = patterns->size();
     uint32_t currentPatternIndex = 0;
     uint32_t nextPatternIndex = 0;
+    // Call read saved patternIndex from flash here : CJ_TEST
+    if(DEBUG_USE_FLASH){
+        flash_read_user_info(); // global user info read
+        currentPatternIndex = user_info.patternIndex;
+    }
     Pattern *currentPattern = patterns->at(currentPatternIndex);
     Pattern *nextPattern = patterns->at(nextPatternIndex);
-    
+
     //Give the ledController access to the nextPatternIndex
     //Thus it can write to it when its button is pressed and change the pattern
     ledController->givePatternIndex(&nextPatternIndex);
@@ -72,7 +80,7 @@ int main(){
     currentPattern->init();
 
     ExecTimer *timer = new ExecTimer();
-    // multicore_lockout_victim_init();        // This tells core0 to stop when data flashing on Core1 starts
+    multicore_lockout_victim_init();        // This tells core0 to stop when data flashing on Core1 starts
     //Main loop
     while(1){
         if(DEBUG_PRINT_MAIN){
@@ -107,7 +115,6 @@ int main(){
             currentPattern->init();                         //Init the new current pattern
         }
     }
-    
 
     return 0;
 }

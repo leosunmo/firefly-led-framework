@@ -203,7 +203,7 @@ double FireFlyV1Controller::getBrightness()
 {
     static double brightness = 0;
     static double lastPot = 0;
-    // return 0.7; // Remove this, hardcode high while testing // CJ_ADC_TEST
+    return 0.7; // Remove this, hardcode high while testing
     if (timing->takeMsEvery(10))
     {
         double newPot = analogPot->getValue();
