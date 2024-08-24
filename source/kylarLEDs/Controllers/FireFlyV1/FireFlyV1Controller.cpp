@@ -83,7 +83,7 @@ void FireFlyV1Controller::initOutput()
     irq_set_exclusive_handler(DMA_IRQ_1, &FireFlyV1Controller::handleDMA);
     irq_set_enabled(DMA_IRQ_1, true);
     // Init 4 strips
-    for (uint8_t i = 0; i < PX_PINS; i++)
+    for (uint8_t i = 0; i < NUM_STRIPS; i++)
     {
         strips[i].pin = PX_pins[i];
         strips[i].sm = PX_sms[i];

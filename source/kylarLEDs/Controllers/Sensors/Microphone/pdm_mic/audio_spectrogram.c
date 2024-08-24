@@ -4,6 +4,7 @@
 #include "../../../../../config.h"
 #include "hardware/adc.h"
 #include "hardware/dma.h"
+#include "simple_exec_timer.c"
 
     // adc_pin = 26;
     // adc = 0;
@@ -90,7 +91,7 @@ void adc_capture(uint16_t *buf, size_t count) {
     
 }
 
-void analog_dma_start(bool ab) {
+void analog_dma_start(q15_t* capture_buffer) {
     /**
      * Concigure the DMA to transfer from the ADC to the capture_buffer
      */
@@ -103,18 +104,11 @@ void analog_dma_start(bool ab) {
     dma_channel_configure(
         dma_chan,
         &c,
-        ab ? capture_buffer_q15_a : capture_buffer_q15_b, // Destination buffer
+        capture_buffer, // Destination buffer
         &adc_hw->fifo,      // ADC FIFO as source
         INPUT_BUFFER_SIZE,  // Number of transfers
         true               // Start the DMA immediately?
     );
-}
-
-q15_t* capture_buffer(){
-    /*
-     * Return the current capture buffer, should be most recently filled by DMA.
-     */
-    return a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
 }
 
 void analog_init(){
@@ -157,6 +151,28 @@ void pdm_core1_entry(){
     analog_init();
     //Loop:
 
+    TimerManager* timer = timer_manager_create();
+    const uint8_t sound_fps = 0;
+    const uint8_t dma_blocking = 1;
+    const uint8_t arm_copy = 2;
+    const uint8_t arm_shift = 3;
+    const uint8_t arm_mult = 4;
+    const uint8_t arm_rfft = 5;
+    const uint8_t arm_cmplx = 6;
+    const uint8_t sum_bins = 7;
+    const uint8_t profile = 8;
+    // Set names for the timers using indices
+    timer_set_name(timer, sound_fps, "Sound FPS");
+    timer_set_name(timer, dma_blocking, "DMA Blocking");
+    timer_set_name(timer, arm_copy, "ARM Copy");
+    timer_set_name(timer, arm_shift, "ARM Shift");
+    timer_set_name(timer, arm_mult, "ARM Multiply");
+    timer_set_name(timer, arm_rfft, "ARM RFFT");
+    timer_set_name(timer, arm_cmplx, "ARM Complex");
+    timer_set_name(timer, sum_bins, "Sum Bins");
+    timer_set_name(timer, profile, "Profile");
+    
+
     int starting_bin = 2;
     float low_bins = LOW_BINS;  // 14
     float high_bins = SKIP_BINS; // 240 // currently used as "skip" bins
@@ -165,131 +181,59 @@ void pdm_core1_entry(){
     uint32_t irq_status = 0;
     uint32_t loops_count = 0;
 
+    q15_t* current_capture_buffer;
+    q15_t* next_capture_buffer;
     
-    uint adc_raw;
-    a_or_b = 0;
-    analog_dma_start(a_or_b);
+    a_or_b = true; // Start on A
+    analog_dma_start(capture_buffer_q15_a);
     while(1) {
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     new_time = get_absolute_time(); //Microseconds
-        //     start_time = get_absolute_time();
-        // }
-        //adc_capture( capture_buffer_q15, INPUT_BUFFER_SIZE );
-
-        // a_or_b = 0
+        timer_reset(timer);
+        timer_start(timer, sound_fps);
+        current_capture_buffer = a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
+        next_capture_buffer =   !a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
+        a_or_b = !a_or_b; // Switch for next.
+        
+        // Wait for the previous transfer to finish. It should've finished during the FFT stuff.
+        timer_start(timer, dma_blocking);
         dma_channel_wait_for_finish_blocking(dma_chan);
-        // We filled the capture_buffer()
+        timer_stop(timer, dma_blocking);
+
         adc_fifo_drain();
-        analog_dma_start(!a_or_b); // Start the opposite channel
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     cur_time = get_absolute_time();
-        //     printf("adc_capture = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-        //     start_time = get_absolute_time();
-        // }
-        // adc_raw = adc_read(); // raw voltage from ADC
-        // printf("%.2f\n", adc_raw * ADC_CONVERT);
-        // sleep_ms(10);
-        // for (int i = 0; i < INPUT_BUFFER_SIZE; i = i + 1){
-        //     printf("%03x\n", capture_buffer_q15[i]);
-        //     printf("%.2f\n", capture_buffer_q15[i] * ADC_CONVERT);
-        // break;
-        // }
-
-        // Wait for DMA transfer to complete
-        // if(dma_channel_is_busy(dma_chan)){
-        //     printf("chan busy");
-        //     continue;
-        // }
-
-        //irq_status = save_and_disable_interrupts();
-
-        //cyw43_arch_poll();
-        //restore_interrupts(irq_status);
-
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     new_time = get_absolute_time(); //Microseconds
-        //     start_time = new_time;
-        // }
-        // loops_count = 0;
-
-        // Waiting for new samples
-        //while (new_samples_captured == 0) {
-            //printf("-> ");
-            //cyw43_arch_poll();
-            //printf("%d| ", ++loops_count);
-            //tight_loop_contents();
-       //}
-
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     cur_time = get_absolute_time();
-        //     printf("wait = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-        //     start_time = get_absolute_time();
-        // }
-        // new_samples_captured = 0;
-
-        // move input buffer values over by INPUT_BUFFER_SIZE samples
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     start_time = get_absolute_time();
-        // }
+        analog_dma_start(next_capture_buffer); // Start the opposite channel
         
-        
-        ///printf("copy:");
-        arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE)); // confirmed input buffer has data
-        
+        // move old samples to the beginning of the buffer
+        timer_start(timer, arm_copy);
+        arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE));
+        timer_stop(timer, arm_copy);
+
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
-        //printf("shift:");
-        arm_shift_q15(capture_buffer(), INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
-        a_or_b = !a_or_b; // Set this for next time.
-        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
-        //     printf("%d",capture_buffer_q15[in_buf_i]); // confirmed we get capture buffer
-        // }
-        //printf("\n");
+        timer_start(timer, arm_shift);
+        arm_shift_q15(current_capture_buffer, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+        timer_stop(timer, arm_shift);
+
+
         // apply the DSP pipeline: Hanning Window + FFT
-        //printf("mult:");
+        timer_start(timer, arm_mult);
         arm_mult_q15(window_q15, input_q15, windowed_input_q15, FFT_SIZE);
-        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
-        //     printf("%d ",windowed_input_q15[in_buf_i]);
-        // }
-        // printf("\n");
-        // printf("rfft:");
+        timer_stop(timer, arm_mult);
+
+        // run the FFT
+        timer_start(timer, arm_rfft);
         arm_rfft_q15(&S_q15, windowed_input_q15, fft_q15);
-        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
-        //     printf("%d ",fft_q15[in_buf_i]);
-        // }
-        // printf("\n");
-        //printf("complx:\n");
+        timer_stop(timer, arm_rfft);
+
+        // Get the real magnitudes.
+        timer_start(timer, arm_cmplx);
         arm_cmplx_mag_q15(fft_q15, fft_mag_q15, FFT_MAG_SIZE);
-        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
-        //     printf("%d ",fft_mag_q15[in_buf_i]);
-        // }
-        //printf("\n");
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     cur_time = get_absolute_time();
-        //     printf("fft stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-        //     start_time = get_absolute_time();
-        // }
+        timer_stop(timer, arm_cmplx);
 
-        // printf("dma:");
-        // dma_channel_start(dma_chan);
-
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     cur_time = get_absolute_time();
-        //     printf("arm stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-        //     start_time = get_absolute_time();
-        // }
-
-        // Audio processing:
-        // if(print){
-        //     printf("|");
-        // }
         temp_freq_data.freq_energy = 0;
         temp_freq_data.low_freq_energy = 0;
         temp_freq_data.high_freq_energy = 0;
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     start_time = get_absolute_time();
-        // }
+
+        timer_start(timer, sum_bins);
         // map the FFT magnitude values to pixel values
-        for (int i = starting_bin; i < 100; i++) {
+        for (int i = starting_bin; i < 120; i++) {
             // get the current FFT magnitude value
             q15_t magnitude = fft_mag_q15[i];
             int bin = i-starting_bin;
@@ -307,7 +251,7 @@ void pdm_core1_entry(){
                 temp_freq_data.freq_energy += magnitude / total_bins;
                 temp_freq_data.high_freq_energy += magnitude / 10.0; //high_bins;
             }
-
+            // Visualize the bins:
             // scale it between 0 to 255 to map, so we can map it to a color based on the color map
             // if(DEBUG_PRINT_MIC){
             //     int color_index = (magnitude / FFT_MAG_MAX) * 255;
@@ -323,31 +267,23 @@ void pdm_core1_entry(){
             //     printf("%c", symbol);
             // }
         }
+        timer_stop(timer, sum_bins);
         // if(DEBUG_PRINT_MIC){
         //     printf("|\n");
-        // }
-
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     //cur_time = get_absolute_time();
-        //     printf("sum bins = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
-        //     start_time = get_absolute_time();
         // }
 
         freq_data.freq_energy = temp_freq_data.freq_energy;
         freq_data.low_freq_energy = temp_freq_data.low_freq_energy;
         freq_data.high_freq_energy = temp_freq_data.high_freq_energy;
         //printf("CORE1 %.0f %.0f %.0f\n", freq_data.low_freq_energy, freq_data.high_freq_energy, freq_data.freq_energy);
+        timer_start(timer, profile);
         updateSoundProfileLow();
+        timer_stop(timer, profile);
         //updateSoundProfileHigh();
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     //cur_time = get_absolute_time();
-        //     printf("profile = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
-        //     start_time = get_absolute_time();
-        // }
 
-        // if(DEBUG_PRINT_MIC_TIMING){
-        //     printf("sound FPS = %.1f / sec\n\n", 1000000.0/(double)(to_us_since_boot(get_absolute_time()) - to_us_since_boot(new_time)));
-        // }
+        timer_stop(timer, sound_fps);
+        timer_print(timer);
+        timer_print_fps(timer, sound_fps);
 
     }
 }

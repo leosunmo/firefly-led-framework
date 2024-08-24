@@ -7,7 +7,7 @@
 #include "../Sensors/Microphone/Microphone.h"
 #include "../../Utility/Timing.h"
 
-#define PX_PINS 4
+#define PX_PINS 3
 
 typedef struct {
     uint8_t pin;
@@ -40,8 +40,8 @@ class FireFlyV1Controller : public Controller{
 
         static strip_t strips[NUM_STRIPS];
         // uint8_t PX_pins[PX_PINS] = {14, 15, 16, 9};
-        uint8_t PX_pins[PX_PINS] = {16, 17, 8, 9};
-        uint8_t PX_sms[PX_PINS] = {0, 1, 2, 3};
+        uint8_t PX_pins[PX_PINS] = {14, 15, 16};
+        uint8_t PX_sms[PX_PINS] = {0, 1, 2};
         uint8_t bitflipLUT[256];
         uint8_t status_led = 10; // GPIO 10 for status LED
         static absolute_time_t channel_end_times[NUM_STRIPS];
