@@ -158,11 +158,11 @@ void pdm_core1_entry(){
             start_time = get_absolute_time();
         }
         adc_capture( capture_buffer_q15, INPUT_BUFFER_SIZE );
-        if(DEBUG_PRINT_MIC_TIMING){
-            cur_time = get_absolute_time();
-            printf("adc_capture = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-            start_time = get_absolute_time();
-        }
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     cur_time = get_absolute_time();
+        //     printf("adc_capture = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
+        //     start_time = get_absolute_time();
+        // }
         // adc_raw = adc_read(); // raw voltage from ADC
         // printf("%.2f\n", adc_raw * ADC_CONVERT);
         // sleep_ms(10);
@@ -226,8 +226,8 @@ void pdm_core1_entry(){
         // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
         //     printf("%d ",windowed_input_q15[in_buf_i]);
         // }
-        printf("\n");
-        printf("rfft:");
+        // printf("\n");
+        // printf("rfft:");
         arm_rfft_q15(&S_q15, windowed_input_q15, fft_q15);
         // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
         //     printf("%d ",fft_q15[in_buf_i]);
@@ -239,11 +239,11 @@ void pdm_core1_entry(){
         //     printf("%d ",fft_mag_q15[in_buf_i]);
         // }
         //printf("\n");
-        if(DEBUG_PRINT_MIC_TIMING){
-            cur_time = get_absolute_time();
-            printf("fft stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
-            start_time = get_absolute_time();
-        }
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     cur_time = get_absolute_time();
+        //     printf("fft stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
+        //     start_time = get_absolute_time();
+        // }
 
         // printf("dma:");
         // dma_channel_start(dma_chan);
@@ -299,9 +299,9 @@ void pdm_core1_entry(){
             //     printf("%c", symbol);
             // }
         }
-        if(DEBUG_PRINT_MIC){
-            printf("|\n");
-        }
+        // if(DEBUG_PRINT_MIC){
+        //     printf("|\n");
+        // }
 
         // if(DEBUG_PRINT_MIC_TIMING){
         //     //cur_time = get_absolute_time();
@@ -315,15 +315,15 @@ void pdm_core1_entry(){
         //printf("CORE1 %.0f %.0f %.0f\n", freq_data.low_freq_energy, freq_data.high_freq_energy, freq_data.freq_energy);
         updateSoundProfileLow();
         //updateSoundProfileHigh();
-        if(DEBUG_PRINT_MIC_TIMING){
-            //cur_time = get_absolute_time();
-            printf("profile = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
-            start_time = get_absolute_time();
-        }
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     //cur_time = get_absolute_time();
+        //     printf("profile = %.1f us\n", (double)(to_us_since_boot(get_absolute_time())-to_us_since_boot(start_time)));
+        //     start_time = get_absolute_time();
+        // }
 
-        if(DEBUG_PRINT_MIC_TIMING){
-            printf("sound FPS = %.1f / sec\n\n", 1000000.0/(double)(to_us_since_boot(get_absolute_time()) - to_us_since_boot(new_time)));
-        }
+        // if(DEBUG_PRINT_MIC_TIMING){
+        //     printf("sound FPS = %.1f / sec\n\n", 1000000.0/(double)(to_us_since_boot(get_absolute_time()) - to_us_since_boot(new_time)));
+        // }
 #endif
     }
 }
