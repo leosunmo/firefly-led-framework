@@ -101,7 +101,7 @@ void analog_init(){
         true     // Enable byte packing (converts 12-bit values to 16-bit values)
     );
 
-    adc_set_clkdiv(0); // Set clock divider to 0 for maximum sampling rate
+    adc_set_clkdiv(4); // Set clock divider to 0 for maximum sampling rate
 #if 1
     // adc_run(true);     // Start ADC in free-running mode
 
@@ -152,14 +152,24 @@ void pdm_core1_entry(){
     // dma_channel_start(dma_chan);
     uint adc_raw;
     while(1) {
+        if(DEBUG_PRINT_MIC_TIMING){
+            new_time = get_absolute_time(); //Microseconds
+            start_time = get_absolute_time();
+        }
         adc_capture( capture_buffer_q15, INPUT_BUFFER_SIZE );
+        if(DEBUG_PRINT_MIC_TIMING){
+            cur_time = get_absolute_time();
+            printf("adc_capture = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
+            start_time = get_absolute_time();
+        }
         // adc_raw = adc_read(); // raw voltage from ADC
         // printf("%.2f\n", adc_raw * ADC_CONVERT);
         // sleep_ms(10);
-        for (int i = 0; i < INPUT_BUFFER_SIZE; i = i + 1)
+        //for (int i = 0; i < INPUT_BUFFER_SIZE; i = i + 1){
             // printf("%03x\n", capture_buffer_q15[i]);
-            printf("%.2f\n", capture_buffer_q15[i] * ADC_CONVERT);
+            //printf("%.2f\n", capture_buffer_q15[i] * ADC_CONVERT);
         // break;
+        //}
 #if 1
         // Wait for DMA transfer to complete
         // if(dma_channel_is_busy(dma_chan)){
@@ -194,20 +204,45 @@ void pdm_core1_entry(){
         // new_samples_captured = 0;
 
         // move input buffer values over by INPUT_BUFFER_SIZE samples
-        printf("copy:");
-        arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE));
-
+        if(DEBUG_PRINT_MIC_TIMING){
+            start_time = get_absolute_time();
+        }
+        
+        
+        ///printf("copy:");
+        arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE)); // confirmed input buffer has data
+        
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
-        printf("shift:");
+        //printf("shift:");
         arm_shift_q15(capture_buffer_q15, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
-
+        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
+        //     printf("%d",capture_buffer_q15[in_buf_i]); // confirmed we get capture buffer
+        // }
+        //printf("\n");
         // apply the DSP pipeline: Hanning Window + FFT
-        printf("mult:");
+        //printf("mult:");
         arm_mult_q15(window_q15, input_q15, windowed_input_q15, FFT_SIZE);
+        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
+        //     printf("%d ",windowed_input_q15[in_buf_i]);
+        // }
+        printf("\n");
         printf("rfft:");
         arm_rfft_q15(&S_q15, windowed_input_q15, fft_q15);
-        printf("complx:");
+        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
+        //     printf("%d ",fft_q15[in_buf_i]);
+        // }
+        // printf("\n");
+        //printf("complx:\n");
         arm_cmplx_mag_q15(fft_q15, fft_mag_q15, FFT_MAG_SIZE);
+        // for(int in_buf_i = 0; in_buf_i < INPUT_BUFFER_SIZE; in_buf_i++){
+        //     printf("%d ",fft_mag_q15[in_buf_i]);
+        // }
+        //printf("\n");
+        if(DEBUG_PRINT_MIC_TIMING){
+            cur_time = get_absolute_time();
+            printf("fft stuff = %.1f us\n", (double)(to_us_since_boot(cur_time)-to_us_since_boot(start_time)));
+            start_time = get_absolute_time();
+        }
 
         // printf("dma:");
         // dma_channel_start(dma_chan);
@@ -225,9 +260,11 @@ void pdm_core1_entry(){
         temp_freq_data.freq_energy = 0;
         temp_freq_data.low_freq_energy = 0;
         temp_freq_data.high_freq_energy = 0;
-
+        if(DEBUG_PRINT_MIC_TIMING){
+            start_time = get_absolute_time();
+        }
         // map the FFT magnitude values to pixel values
-        for (int i = starting_bin; i < low_bins; i++) {
+        for (int i = starting_bin; i < 100; i++) {
             // get the current FFT magnitude value
             q15_t magnitude = fft_mag_q15[i];
             int bin = i-starting_bin;
@@ -247,19 +284,19 @@ void pdm_core1_entry(){
             }
 
             // scale it between 0 to 255 to map, so we can map it to a color based on the color map
-            if(DEBUG_PRINT_MIC){
-                int color_index = (magnitude / FFT_MAG_MAX) * 255;
-                char symbol = ' ';
-                if (color_index > 160) {
-                    color_index = 255;
-                    symbol = 'X';
-                }else if(color_index > 80) {
-                    symbol= 'x';
-                }else if(color_index > 40) {
-                    symbol = '.';
-                }
-                printf("%c", symbol);
-            }
+            // if(DEBUG_PRINT_MIC){
+            //     int color_index = (magnitude / FFT_MAG_MAX) * 255;
+            //     char symbol = ' ';
+            //     if (color_index > 160) {
+            //         color_index = 255;
+            //         symbol = 'X';
+            //     }else if(color_index > 80) {
+            //         symbol= 'x';
+            //     }else if(color_index > 40) {
+            //         symbol = '.';
+            //     }
+            //     printf("%c", symbol);
+            // }
         }
         if(DEBUG_PRINT_MIC){
             printf("|\n");
