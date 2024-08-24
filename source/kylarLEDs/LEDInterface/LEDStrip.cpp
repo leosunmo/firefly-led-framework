@@ -58,7 +58,7 @@ irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
     if(DEBUG_USE_FLASH){
         if(hsv.h != user_info.hue){
             user_info.hue = hsv.h;
-            flash_write_user_info();
+            // flash_write_user_info();
         }
     }
     //timer->add("ledController->getHue()");

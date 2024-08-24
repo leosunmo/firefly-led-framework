@@ -22,6 +22,7 @@ typedef struct {
 typedef struct {
     uint32_t patternIndex;
     double hue;
+    uint8_t is_valid;
 } user_info_t;
 
 #ifdef __cplusplus

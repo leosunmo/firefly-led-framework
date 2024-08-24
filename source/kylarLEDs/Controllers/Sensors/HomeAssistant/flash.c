@@ -82,6 +82,7 @@ void flash_write_user_info() {
     user_info_t user_info;
     uint8_t flash_data[FLASH_SECTOR_SIZE];
     memset(flash_data, 0xFF, FLASH_SECTOR_SIZE);
+    user_info.is_valid = DATA_MARKER;
     memcpy(flash_data, &user_info, sizeof(user_info));
 
     uint32_t ints = save_and_disable_interrupts();
@@ -96,4 +97,8 @@ void flash_write_user_info() {
 void flash_read_user_info() {
     const uint8_t *flash_data = (const uint8_t *)(XIP_BASE + FLASH_HSV_OFFSET);
     memcpy(&user_info, flash_data, sizeof(user_info_t));
+    if( DATA_MARKER != user_info.is_valid ){
+        user_info.patternIndex = 0;
+        user_info.hue = 0;
+    }
 }
