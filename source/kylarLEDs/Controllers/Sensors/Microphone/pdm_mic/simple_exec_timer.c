@@ -3,7 +3,7 @@
 #include <string.h>
 #include "pico/stdlib.h"
 
-#define MAX_TIMERS 10
+#define MAX_TIMERS 15
 #define TIMER_NAME_LENGTH 32
 
 typedef struct {

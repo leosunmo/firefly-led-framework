@@ -4,7 +4,8 @@
 #include "../../../../../config.h"
 #include "hardware/adc.h"
 #include "hardware/dma.h"
-#include "simple_exec_timer.c"
+#include "simple_exec_timer.h"
+#include <math.h>
 
     // adc_pin = 26;
     // adc = 0;
@@ -44,6 +45,7 @@ bool a_or_b = 0; // 1=a, 0=b
 q15_t input_q15[FFT_SIZE];
 q15_t window_q15[FFT_SIZE];
 q15_t windowed_input_q15[FFT_SIZE];
+double window_double[FFT_SIZE];
 
 arm_rfft_instance_q15 S_q15;
 
@@ -79,6 +81,24 @@ void pdm_init(){
         while (pdm_microphone_start() < 0) { tight_loop_contents(); }
     }
 }
+
+void check_and_fix_infinity(sound_profile_t *profile) {
+    // Array of pointers to all double fields in the struct
+    double *fields[] = {
+        &profile->low_min, &profile->low_max, &profile->low_avg, &profile->low_normal,
+        &profile->low_normal_min, &profile->low_normal_max, &profile->low_normal_normal,
+        &profile->high_min, &profile->high_max, &profile->high_avg, &profile->high_normal,
+        &profile->high_normal_min, &profile->high_normal_max, &profile->high_normal_normal
+    };
+
+    // Iterate through each pointer and check if it is infinity
+    for (int i = 0; i < sizeof(fields) / sizeof(fields[0]); i++) {
+        if (isinf(*fields[i])) {
+            *fields[i] = 1.0; // Set to 1.0 if the value is infinite
+        }
+    }
+}
+
 //__not_in_flash_func
 void adc_capture(uint16_t *buf, size_t count) {
 
@@ -140,12 +160,15 @@ void analog_init(){
 void pdm_core1_entry(){
     //Init:
     // initialize the hanning window and RFFT instance
-    sleep_ms(50); //delay here so that the dma channel doesn't get claimed..
+    sleep_ms(100); //delay here so that the dma channel doesn't get claimed..
 
     // multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
     printf("pdm core1 entry");
 
     hanning_window_init_q15(window_q15, FFT_SIZE);
+    // for(int i = 0; i < FFT_SIZE; i++){
+    //     window_double[i] = (double)window_q15[i] / 32767.0;
+    // }
     arm_rfft_init_q15(&S_q15, FFT_SIZE, 0, 1);
 
     // Initialize the Microphone hardware
@@ -162,6 +185,8 @@ void pdm_core1_entry(){
     const uint8_t arm_cmplx = 6;
     const uint8_t sum_bins = 7;
     const uint8_t profile = 8;
+    const uint8_t print_time = 9;
+    const uint8_t infinities = 10;
     // Set names for the timers using indices
     timer_set_name(timer, sound_fps, "Sound FPS");
     timer_set_name(timer, dma_blocking, "DMA Blocking");
@@ -172,6 +197,8 @@ void pdm_core1_entry(){
     timer_set_name(timer, arm_cmplx, "ARM Complex");
     timer_set_name(timer, sum_bins, "Sum Bins");
     timer_set_name(timer, profile, "Profile");
+    timer_set_name(timer, print_time, "Print time");
+    timer_set_name(timer, infinities, "Infinity check");
     
 
     int starting_bin = 3;
@@ -193,7 +220,7 @@ void pdm_core1_entry(){
         current_capture_buffer = a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
         next_capture_buffer =   !a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
         a_or_b = !a_or_b; // Switch for next.
-        
+
         // Wait for the previous transfer to finish. It should've finished during the FFT stuff.
         timer_start(timer, dma_blocking);
         dma_channel_wait_for_finish_blocking(dma_chan);
@@ -209,7 +236,26 @@ void pdm_core1_entry(){
 
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
         timer_start(timer, arm_shift);
-        arm_shift_q15(current_capture_buffer, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+
+        bool too_quiet = 1; // Don't do stuff if it's too quiet
+        for (q15_t* sample = current_capture_buffer; sample < current_capture_buffer + INPUT_BUFFER_SIZE; sample++){
+            *sample = *sample - 2048; // Center samples around zero
+            if( too_quiet && abs(*sample) > 200){  // 200 was chosen for a gain of 80.6, but normal gain is 64 on FireFlyV1
+                too_quiet = 0;
+            }
+        }
+
+        if(too_quiet){
+            freq_data.freq_energy = 0;
+            freq_data.low_freq_energy = 0;
+            freq_data.high_freq_energy = 0;
+            //printf("CORE1 %.0f %.0f %.0f\n", freq_data.low_freq_energy, freq_data.high_freq_energy, freq_data.freq_energy);
+            updateSoundProfileLow();
+            updateSoundProfileHigh();
+            continue;
+        }
+
+        arm_shift_q15(current_capture_buffer, 8/**INPUT_SHIFT */, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
         //arm_shift_q15(current_capture_buffer, INPUT_SHIFT, input_q15, INPUT_BUFFER_SIZE);
         timer_stop(timer, arm_shift);
 
@@ -217,11 +263,16 @@ void pdm_core1_entry(){
         // apply the DSP pipeline: Hanning Window + FFT
         timer_start(timer, arm_mult);
         arm_mult_q15(window_q15, input_q15, windowed_input_q15, FFT_SIZE);
+        // for(int i = 0; i < FFT_SIZE; i++){
+        //     windowed_input_q15[i] = (q15_t)(input_q15[i] * window_double[i]);
+        // }
+        
         timer_stop(timer, arm_mult);
 
         // run the FFT
         timer_start(timer, arm_rfft);
         arm_rfft_q15(&S_q15, windowed_input_q15, fft_q15);
+        //arm_rfft_q15(&S_q15, input_q15, fft_q15);
         timer_stop(timer, arm_rfft);
 
         // Get the real magnitudes.
@@ -235,8 +286,8 @@ void pdm_core1_entry(){
 
         timer_start(timer, sum_bins);
         // map the FFT magnitude values to pixel values
-        int highest_bin = 0;
-        int highest_bin_mag = 0;
+        int highest_bin = starting_bin;
+        int highest_bin_mag = fft_mag_q15[starting_bin];
         for (int i = starting_bin; i < total_bins; i++) {
             // get the current FFT magnitude value
             q15_t magnitude = fft_mag_q15[i];
@@ -253,8 +304,8 @@ void pdm_core1_entry(){
                 temp_freq_data.low_freq_energy += magnitude / low_bins;
             }else if(bin - low_bins <= high_bins){
                 //HIGHS
-                //temp_freq_data.freq_energy += magnitude / total_bins;
-                //temp_freq_data.high_freq_energy += magnitude / high_bins;
+                temp_freq_data.freq_energy += magnitude / total_bins;
+                temp_freq_data.high_freq_energy += magnitude / high_bins;
             }else{
                 // Out of range
                 
@@ -264,24 +315,7 @@ void pdm_core1_entry(){
         //printf("Highest bin = %d at %d\n", highest_bin, highest_bin_mag);
         timer_stop(timer, sum_bins);
 
-        // Visualize the bins:
-#if 0
-        printf("|");
-        for (int i = starting_bin; i < total_bins; i++){
-            q15_t magnitude = fft_mag_q15[i];
-            double bin_intensity = (magnitude / (double) highest_bin_mag);
-            char symbol = ' ';
-            if (bin_intensity > 0.8) {
-                symbol = 'X';
-            }else if(bin_intensity > 0.5) {
-                symbol= 'x';
-            }else if(bin_intensity > 0.1) {
-                symbol = '.';
-            }
-            printf("%c", symbol);
-        }
-        printf("|\n");
-#endif
+
         // if(DEBUG_PRINT_MIC){
         //     
         // }
@@ -292,15 +326,44 @@ void pdm_core1_entry(){
         //printf("CORE1 %.0f %.0f %.0f\n", freq_data.low_freq_energy, freq_data.high_freq_energy, freq_data.freq_energy);
         timer_start(timer, profile);
         updateSoundProfileLow();
-        //updateSoundProfileHigh();
+        updateSoundProfileHigh();
         timer_stop(timer, profile);
 
-        timer_stop(timer, sound_fps);
+        
+    timer_start(timer, print_time);
+                // Visualize the bins:
+#if DEBUG_PRINT_MIC
+        printf("|\n");
+        for (int i = starting_bin; i < total_bins; i++){
+            q15_t magnitude = fft_mag_q15[i];
+            double bin_intensity = (magnitude / (double) highest_bin_mag);
+            printf("%d\t%+6d\n", i, magnitude);
+            // char symbol = ' ';
+            // if (bin_intensity > 0.8) {
+            //     symbol = 'X';
+            // }else if(bin_intensity > 0.5) {
+            //     symbol= 'x';
+            // }else if(bin_intensity > 0.1) {
+            //     symbol = '.';
+            // }
+            // printf("%c", symbol);
+        }
+        printf("|\n");
+#endif
+    timer_stop(timer, print_time);
+    timer_stop(timer, sound_fps);
+
+#if DEBUG_PRINT_MIC_TIMING
         timer_print(timer);
         timer_print_fps(timer, sound_fps);
+#endif
+
+    
 
     }
 }
+
+
 
 //What would be cool is to have it arranged in a normal distribution kinda way...
 void updateSoundProfileLow() {
@@ -353,6 +416,9 @@ void updateSoundProfileLow() {
     }else{
         sound_profile.low_normal_max *= 0.999;
     }
+    if(sound_profile.low_normal_max > 9999999){
+         sound_profile.low_normal_max = sound_profile.low_normal;
+     }
 
     // Calculate normal's place in that -> normal_normal
     sound_profile.low_normal_normal = (sound_profile.low_normal - sound_profile.low_normal_min)/(sound_profile.low_normal_min+sound_profile.low_normal_max);
@@ -527,5 +593,8 @@ freq_data_t *get_freq_data(){
 }
 
 sound_profile_t *get_sound_profile(){
+    //timer_start(timer, infinities);
+    check_and_fix_infinity(&sound_profile); // Sometimes can get infinities
+    // timer_stop(timer, infinities);
     return &sound_profile;
 }
