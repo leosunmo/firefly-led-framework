@@ -12,9 +12,8 @@
  * TODO: Make the strips able to turn on / off output pins.
  * 
  */
-#define PX_PINS 3
-#define NUM_STRIPS 3
-#define NUM_LEDS 64
+#define NUM_STRIPS 1
+#define NUM_LEDS 48
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////
@@ -39,9 +38,9 @@
 /**
  * Signal Processing Options
  */
-#define LOW_BINS 60
+#define LOW_BINS 20
 #define SKIP_BINS 0
-#define HIGH_BINS 200
+#define HIGH_BINS 100
 
 
 ////////////////////////////////////////////////////////////
@@ -72,8 +71,8 @@
 ////////////////////////////////////////////////////////////
 #define DEBUG_DELAY_MAIN 0 // Used to give time to start Serial Monitoring
 #define DEBUG_PRINT_MAIN 0
-#define DEBUG_PRINT_MIC 1
-#define DEBUG_PRINT_MIC_TIMING 1
+#define DEBUG_PRINT_MIC 0
+#define DEBUG_PRINT_MIC_TIMING 0
 #define DEBUG_PRINT_FLASH 0
 #define DEBUG_PRINT_OTHER 0
 
