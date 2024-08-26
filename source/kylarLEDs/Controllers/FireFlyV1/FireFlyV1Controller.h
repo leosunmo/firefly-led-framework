@@ -27,6 +27,7 @@ class FireFlyV1Controller : public Controller{
         double getBrightness();
         static void handleDMA();
         void givePatternIndex(uint32_t *patternIndex);
+        void saveToFlash();
     protected:
         void initCommunication();
         void initHue(); // Change hue via encoder

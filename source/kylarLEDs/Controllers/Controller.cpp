@@ -21,3 +21,7 @@ double Controller::getHue(){
 double Controller::getBrightness(){
     return brightness;
 }
+
+void Controller::saveToFlash(){
+
+}

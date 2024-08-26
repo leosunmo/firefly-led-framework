@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "pico/time.h"
 #include "../../../config.h"
+#include "../Sensors/HomeAssistant/flash.h"
 
 absolute_time_t FireFlyV1Controller::channel_end_times[NUM_STRIPS];
 strip_t FireFlyV1Controller::strips[NUM_STRIPS];
@@ -251,4 +252,9 @@ void FireFlyV1Controller::givePatternIndex(uint32_t *patternIndex)
 void FireFlyV1Controller::initMicrophone()
 {
     Microphone::start();
+}
+
+void FireFlyV1Controller::saveToFlash()
+{
+    flash_write_user_info();
 }

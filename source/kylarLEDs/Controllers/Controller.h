@@ -10,6 +10,7 @@ class Controller {
         virtual double getBrightness();
         virtual uint64_t getCurrentTimeMillis() = 0;
         virtual uint64_t getCurrentTimeMicros() = 0;
+        virtual void saveToFlash();
     protected:
         uint32_t *patternIndex = 0;
         double hue = 0;

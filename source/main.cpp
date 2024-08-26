@@ -81,6 +81,7 @@ int main(){
 
     ExecTimer *timer = new ExecTimer();
     multicore_lockout_victim_init();        // This tells core0 to stop when data flashing on Core1 starts
+    Timing *saveUserInfo = new Timing();
     //Main loop
     while(1){
         if(DEBUG_PRINT_MAIN){
@@ -113,6 +114,10 @@ int main(){
             currentPattern = nextPattern;                   //Set the current pattern to be the next
             currentPatternIndex = nextPatternIndex;         //Set current pattern index to the new one
             currentPattern->init();                         //Init the new current pattern
+        }
+
+        if(saveUserInfo->takeMsEvery(5000)){
+            ledController->saveToFlash();
         }
     }
 
