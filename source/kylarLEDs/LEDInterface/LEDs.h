@@ -14,6 +14,7 @@ class LEDs {
         static void setHSV(int i, hsv_t color);// Sets HSV for an LED on all strips
         static void setRGB(int i, rgb8_t color);// Sets HSV for an LED on all strips
         static void giveController(Controller * controller); // give the strips the controller reference
+        static void useGlobalBrightnessControl(bool enable, double* globalBrightness); // Used for sound reactive patterns that want to globally set brightness.
     private:
         static std::vector<LEDStrip*> *strips;
         

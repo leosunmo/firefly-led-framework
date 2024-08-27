@@ -19,6 +19,8 @@ void FireV0::init(){
     secTimer = new Timing();
     avgTimer = new Timing();
     valTimer = new Timing();
+
+    LEDs::useGlobalBrightnessControl(true, &(this->global_brightness));
 }
 
 int FireV0::calc_num_new_sparks(){
@@ -38,14 +40,32 @@ void FireV0::create_new_sparks(int x_sparks){
     int steps = x_sparks;
     double speed = x_sparks / 10.0;
     for(int i = 0; i < x_sparks/2; i++){
-        side = !side;
+
+        /*
+         * Try to grab a spark
+         */
+        Spark* spark = sparks[spark_index];
+        if(spark->num_steps + spark->bonus_steps > 10){
+            // This one still has steps left
+            //i--;
+            if(++spark_index >= num_sparks){
+                spark_index = 0;
+            }
+            continue;
+        }
+
+        /*
+         * Calculate new spark's properties
+         */
         spark_pos = side ? left_side : right_side;
         spark_dir = side ? 1 : -1;
         steps = std::min(2*i, NUM_LEDS/2 - 2);
-        brightness = (2*i)/(double)x_sparks;
+        brightness = (double)x_sparks/10.0;//(2*i)/(double)x_sparks;
         speed = x_sparks/10.0 + i*0.4; 
-        Spark* spark = sparks[i];
-        
+
+        /**
+         * Reset a spark.
+         */
         spark->reset(spark_pos,
                      spark_dir,
                      brightness,
@@ -54,6 +74,10 @@ void FireV0::create_new_sparks(int x_sparks){
                      -0.01 + (i % 2)*0.003 /*hue shift */,
                      speed);
         
+        /*
+         * Fulfill our continuation goals.
+         */
+        side = !side;
         spark_hue += 0.01;
         if(spark_hue > 1.22){
             spark_hue = 1.17;
@@ -123,7 +147,9 @@ void FireV0::run(){
             }
         }
     }
-    create_new_sparks((int)(result*5)*(result * 5) + 2, result);
+    global_brightness = 0.35*result+0.65;
+    create_new_sparks((int)(result*5)*(result * 5) + 2);
+    
     //FireV0_logo->setBrightness((float)result);
 }
 

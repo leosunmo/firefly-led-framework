@@ -15,7 +15,7 @@ void Spark::init(){
     blueprint.Tfall = 200;
     timer = new Timing();
     initialized = 1;
-    num_steps = 10;
+    num_steps = 0;
     brightness_loss = blueprint.brightness / num_steps;
 }
 
@@ -43,7 +43,11 @@ void Spark::run(){
         SingleTime* light = new SingleTime();
         light->init(blueprint);
         Effect::engine->queueApply(light);
-        blueprint.hue += hue_shift;
+        
+        if(blueprint.hue > 1){
+            // don't go below 1
+            blueprint.hue += hue_shift;
+        }
         blueprint.saturation += brightness_loss/2.0;
         // Take from bonus steps first
         if(bonus_steps > 0){

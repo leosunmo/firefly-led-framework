@@ -104,6 +104,7 @@ int main(){
             effectEngine->clear();                          //Clear the effects
             LEDs::clear();                                  //Clear the LEDs
             LEDs::output();                                 //Output the off LEDs
+            LEDs::useGlobalBrightnessControl(false, NULL);  //Clear any global brightness control
             nextPatternIndex %= numPatterns;                //Protect from out of bounds
             nextPattern = patterns->at(nextPatternIndex);   //Get the next pattern
             currentPattern = nextPattern;                   //Set the current pattern to be the next
