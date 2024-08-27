@@ -17,10 +17,10 @@ class FireV0 : public Pattern{
     
     private:
         int initted = 0;
-        const uint32_t num_sparks = 200;
-        Spark* sparks;
+        const uint32_t num_sparks = 400;
+        Spark* sparks[400];
         void create_new_sparks(int x_sparks);
-        int calc_new_sparks();
+        int calc_num_new_sparks();
         Timing *avgTimer;
         Timing *secTimer;
         Timing *valTimer;

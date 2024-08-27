@@ -12,18 +12,55 @@ void FireV0::init(){
     // FireV0Logo *FireV0_logo = new FireV0Logo();
     // FireV0_logo->init();
     //Effect::engine->apply(FireV0_logo);
-    //sparks = malloc(num_sparks * sizeof(Spark));
+    for(int i = 0; i < num_sparks; i++){
+        sparks[i] = new Spark();
+        Effect::engine->queueApply(sparks[i]);
+    }
     secTimer = new Timing();
     avgTimer = new Timing();
     valTimer = new Timing();
 }
 
-int FireV0::calc_new_sparks(){
-
+int FireV0::calc_num_new_sparks(){
+    // Currently the Run takes care of this
 }
 
 void FireV0::create_new_sparks(int x_sparks){
+    static int left_side = 0;
+    static int right_side = NUM_LEDS - 1;
+    static int side = 0; // Flip the side they're created on
+    static int spark_index = 0; // Increment this
+    static double spark_hue = 0.9;
 
+    int spark_pos;
+    int spark_dir;
+    double brightness = 0.2;
+    int steps = x_sparks;
+    double speed = x_sparks / 10.0;
+    for(int i = 0; i < x_sparks; i++){
+        side = !side;
+        spark_pos = side ? left_side : right_side;
+        spark_dir = side ? 1 : -1;
+        steps = std::min(i, NUM_LEDS/2 - 2);
+        brightness = (i)/(double)x_sparks;
+        Spark* spark = sparks[i];
+        
+        spark->reset(spark_pos,
+                     spark_dir,
+                     brightness,
+                     steps,
+                     spark_hue,
+                     0.01 /*hue shift */,
+                     speed + i*0.2);
+        
+        spark_hue += 0.01;
+        if(spark_hue > 1.05){
+            spark_hue = 1;
+        }
+        if(++spark_index >= num_sparks){
+            spark_index = 0;
+        }
+    }
 }
 
 void FireV0::run(){
@@ -33,7 +70,6 @@ void FireV0::run(){
     double result = 0;
     double seconds = secTimer->takeSeconds();
     int avgLoops = 0;
-    int new_sparks = calc_new_sparks();
     // Color movement
     //printf("micTimer = %d ... %f\n", micTimer->timerMs(), micTimer->takeSeconds());
 
@@ -77,6 +113,7 @@ void FireV0::run(){
         result = highVal + brightness * 0.1;
     }
     
+    create_new_sparks((int)(result * 50) + 1);
     //FireV0_logo->setBrightness((float)result);
 }
 

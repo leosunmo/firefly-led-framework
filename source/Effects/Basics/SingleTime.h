@@ -4,13 +4,14 @@
 //Single LED, time-based brightness
 
 typedef struct{
-    int index;
-    double hue;
-    double brightness;
-    uint32_t Toffset;
-    uint32_t Trise;
-    uint32_t Thold;
-    uint32_t Tfall;
+    uint16_t index;
+    float hue;
+    float saturation;
+    float brightness;
+    uint16_t Toffset;
+    uint16_t Trise;
+    uint16_t Thold;
+    uint16_t Tfall;
 } single_time_t; // Times are in milliseconds
 
 class SingleTime : public Effect{
