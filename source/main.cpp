@@ -13,6 +13,7 @@
 #include "Patterns/SoundReactive/Shakeel.h"
 #include "Patterns/SoundReactive/ShakeelFlash.h"
 #include "Patterns/SoundReactive/SpaceX.h"
+#include "Patterns/SoundReactive/FireV0.h"
 #include "Patterns/SoundReactive/HeartPattern.h"
 #include "Patterns/SoundReactive/CirclesPattern.h"
 #include "Patterns/SoundReactive/Raindrop.h"
@@ -43,6 +44,7 @@ int main(){
     //ADD YOUR PATTERNS HERE!
     //ex. patterns->push_back(new ExamplePattern());
     patterns->push_back(new Raindrop());
+    patterns->push_back(new FireV0());
     patterns->push_back(new SpaceX());
     patterns->push_back(new FireFlies());
     patterns->push_back(new WirelessPattern());
