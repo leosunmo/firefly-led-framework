@@ -4,9 +4,13 @@
 #include "../../Effects/SoundReactive/Spark.h"
 
 class FireV0 : public Pattern{
+    bool useSound;
 
     public:
-        using Pattern::Pattern;
+        FireV0(bool soundReactive) 
+        : Pattern(), useSound(soundReactive) {
+        // Constructor implementation for FireV0
+    }
         
         void run();
         void init();

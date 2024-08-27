@@ -3,7 +3,7 @@
 #include "../../Effects/Basics/ExampleEffect.h"
 #include "../../Effects/Effect.h"
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
-
+#include "../../kylarLEDs/Utility/Waveforms/Triangle.h"
 
 
 FireV0::~FireV0() {}
@@ -25,6 +25,7 @@ void FireV0::init(){
 
 int FireV0::calc_num_new_sparks(){
     // Currently the Run takes care of this
+    return 0;
 }
 
 void FireV0::create_new_sparks(int x_sparks){
@@ -95,11 +96,25 @@ void FireV0::run(){
     double result = 0;
     double seconds = secTimer->takeSeconds();
     int avgLoops = 0;
+    avgLoops = avgTimer->takeMsEvery(1);
+
+    if(useSound == false){
+        /**
+         * 
+         * Add a few triangle waves of different periods here
+         * To get a nicer brightness and differing number of sparks
+         * For the fire effect :)
+         */
+        global_brightness = 0.8;
+        create_new_sparks(20);
+        return;
+    }
+    
     // Color movement
     //printf("micTimer = %d ... %f\n", micTimer->timerMs(), micTimer->takeSeconds());
 
     // printf("avgTimer = %d ... %d\n", avgTimer->timerMs());//, avgTimer->takeMsEvery(25));
-    avgLoops = avgTimer->takeMsEvery(1);
+    
 
 
     // Brightness
@@ -157,5 +172,8 @@ void FireV0::release(){
     delete(secTimer);
     delete(avgTimer);
     delete(valTimer);
+    for(int i = 0; i < num_sparks; i++){
+        delete(sparks[i]);
+    }
     //delete(FireV0_logo);
 }
