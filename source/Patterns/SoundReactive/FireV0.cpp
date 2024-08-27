@@ -29,20 +29,21 @@ void FireV0::create_new_sparks(int x_sparks){
     static int left_side = 0;
     static int right_side = NUM_LEDS - 1;
     static int side = 0; // Flip the side they're created on
-    static int spark_index = 0; // Increment this
-    static double spark_hue = 0.9;
+    static int spark_index = 0; // Increment this so we wrap around sparks array
+    static double spark_hue = 1.17;
 
     int spark_pos;
     int spark_dir;
     double brightness = 0.2;
     int steps = x_sparks;
     double speed = x_sparks / 10.0;
-    for(int i = 0; i < x_sparks; i++){
+    for(int i = 0; i < x_sparks/2; i++){
         side = !side;
         spark_pos = side ? left_side : right_side;
         spark_dir = side ? 1 : -1;
-        steps = std::min(i, NUM_LEDS/2 - 2);
-        brightness = (i)/(double)x_sparks;
+        steps = std::min(2*i, NUM_LEDS/2 - 2);
+        brightness = (2*i)/(double)x_sparks;
+        speed = x_sparks/10.0 + i*0.4; 
         Spark* spark = sparks[i];
         
         spark->reset(spark_pos,
@@ -50,12 +51,12 @@ void FireV0::create_new_sparks(int x_sparks){
                      brightness,
                      steps,
                      spark_hue,
-                     0.01 /*hue shift */,
-                     speed + i*0.2);
+                     -0.01 + (i % 2)*0.003 /*hue shift */,
+                     speed);
         
         spark_hue += 0.01;
-        if(spark_hue > 1.05){
-            spark_hue = 1;
+        if(spark_hue > 1.22){
+            spark_hue = 1.17;
         }
         if(++spark_index >= num_sparks){
             spark_index = 0;
@@ -112,8 +113,17 @@ void FireV0::run(){
     }else{
         result = highVal + brightness * 0.1;
     }
-    
-    create_new_sparks((int)(result * 50) + 1);
+    if(result > 0.8){
+        // Extend sparks on loud sounds
+        for(int i = 0; i < num_sparks; i++){
+            Spark* spark = sparks[i];
+            if(spark->num_steps > 0 && spark->bonused == 0){
+                spark->bonus_steps = 5;
+                spark->bonused = 1;
+            }
+        }
+    }
+    create_new_sparks((int)(result*5)*(result * 5) + 2, result);
     //FireV0_logo->setBrightness((float)result);
 }
 

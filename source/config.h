@@ -13,7 +13,7 @@
  * 
  */
 #define NUM_STRIPS 1
-#define NUM_LEDS 48
+#define NUM_LEDS 49
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////
