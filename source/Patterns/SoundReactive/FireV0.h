@@ -2,6 +2,7 @@
 #include "../Pattern.h"
 #include "../../kylarLEDs/Utility/Timing.h"
 #include "../../Effects/SoundReactive/Spark.h"
+#include "../../kylarLEDs/Utility/Waveforms/Triangle.h"
 
 class FireV0 : public Pattern{
     bool useSound;
@@ -22,13 +23,15 @@ class FireV0 : public Pattern{
     
     private:
         int initted = 0;
-        const uint32_t num_sparks = 100;
-        Spark* sparks[100];
+        const uint32_t num_sparks = 200;
+        Spark* sparks[200];
         void create_new_sparks(int x_sparks);
         int calc_num_new_sparks();
         Timing *avgTimer;
         Timing *secTimer;
         Timing *valTimer;
+        const int num_triangles = 4;
+        Triangle *triangles[4];
 
         
         

@@ -3,8 +3,7 @@
 #include "../../Effects/Basics/ExampleEffect.h"
 #include "../../Effects/Effect.h"
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
-#include "../../kylarLEDs/Utility/Waveforms/Triangle.h"
-
+#include "../../Effects/Basics/Gradient.h"
 
 FireV0::~FireV0() {}
 
@@ -19,6 +18,30 @@ void FireV0::init(){
     secTimer = new Timing();
     avgTimer = new Timing();
     valTimer = new Timing();
+    for(int i = 0; i < 4; i++){
+        triangles[i] = new Triangle();
+    }
+    triangles[0]->setPeriodMs(4000);
+    triangles[1]->setPeriodMs(3000);
+    triangles[2]->setPeriodMs(600);
+    triangles[3]->setPeriodMs(500);
+
+    Gradient *gradient = new Gradient();
+    gradient->start = 0;
+    gradient->stop = NUM_LEDS/2;
+    gradient->start_hue = 0.2;
+    gradient->stop_hue = 0;
+    gradient->brightness = 0.1;
+    Effect::engine->apply(gradient);
+    
+    gradient = new Gradient();
+    gradient->start = NUM_LEDS/2;
+    gradient->stop = NUM_LEDS-1;
+    gradient->start_hue = 0;
+    gradient->stop_hue = 0.2;
+    gradient->brightness = 0.1;
+    Effect::engine->apply(gradient);
+
 
     LEDs::useGlobalBrightnessControl(true, &(this->global_brightness));
 }
@@ -97,7 +120,8 @@ void FireV0::run(){
     double seconds = secTimer->takeSeconds();
     int avgLoops = 0;
     avgLoops = avgTimer->takeMsEvery(1);
-
+    static int quiet_sparks = 30;
+    static int triangle_coeffs[] = {20,20,20,20};
     if(useSound == false){
         /**
          * 
@@ -105,10 +129,16 @@ void FireV0::run(){
          * To get a nicer brightness and differing number of sparks
          * For the fire effect :)
          */
+        
         global_brightness = 0.8;
-        create_new_sparks(20);
+        quiet_sparks = 0;
+        for(int i = 0; i < num_triangles; i++){
+            quiet_sparks += triangles[i]->value() * triangle_coeffs[i];
+        }
+        create_new_sparks(quiet_sparks);
         return;
     }
+    
     
     // Color movement
     //printf("micTimer = %d ... %f\n", micTimer->timerMs(), micTimer->takeSeconds());
@@ -172,8 +202,8 @@ void FireV0::release(){
     delete(secTimer);
     delete(avgTimer);
     delete(valTimer);
-    for(int i = 0; i < num_sparks; i++){
-        delete(sparks[i]);
+    for(int i = 0; i < num_triangles; i++){
+         delete(triangles[i]);
     }
     //delete(FireV0_logo);
 }
