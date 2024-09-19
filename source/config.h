@@ -9,11 +9,13 @@
  * NUM_STRIPS is the number of pins to output on.
  * NUM_LEDS is the number of LEDs per strip.
  * BRIGHTNESS_OFFSET is an added brightness. Useful for when no potentiometer.
+ * LEDS_OFFSET shift the start and end of the LED strip
  * TODO: Make the strips able to turn on / off output pins.
  * 
  */
 #define NUM_STRIPS 1
 #define NUM_LEDS 49
+#define LEDS_OFFSET -6
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////
@@ -26,7 +28,7 @@
  * MQTT Enable: Turn on Wifi in Core1, but for MQTT + Home Assistant in Station mode
  * WiFi Enable: Turn on Wifi in Core1, but host a network + website in Access Point mode
  */
-#define MICROPHONE_ENABLE 1
+#define MICROPHONE_ENABLE 0
 #define MQTT_ENABLE 0 // picow only.
 #define WIFI_ENABLE 0 // picow only.
 
