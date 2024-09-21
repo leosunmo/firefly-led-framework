@@ -15,6 +15,7 @@
 #include "Patterns/SoundReactive/SpaceX.h"
 #include "Patterns/SoundReactive/HeartPattern.h"
 #include "Patterns/SoundReactive/CirclesPattern.h"
+#include "Patterns/SoundReactive/Raindrop.h"
 #include "kylarLEDs/Utility/ExecTimer.h"
 #include <malloc.h>
 #include "pico/time.h"
@@ -41,6 +42,7 @@ int main(){
     //Push back all the patterns you want!
     //ADD YOUR PATTERNS HERE!
     //ex. patterns->push_back(new ExamplePattern());
+    patterns->push_back(new Raindrop());
     patterns->push_back(new FireFlies());
     patterns->push_back(new WirelessPattern());
     patterns->push_back(new HeartPattern());
