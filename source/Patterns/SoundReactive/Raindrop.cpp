@@ -15,11 +15,11 @@ void Raindrop::init(){
     leftRaindropEffect->init();
 
     // set the pixels each effect uses
-    midpoint = NUM_LEDS/2+startOffset+centerOffset;
-    for (int i=midpoint; i<(NUM_LEDS-endOffset);i++){
+    midpoint = NUM_LEDS/2;
+    for (int i=midpoint; i<(NUM_LEDS);i++){
         rightRaindropEffect->pixels->push_back(Pixel(i));
     }
-    for (int i=midpoint-1; i>=0+startOffset;i--) {
+    for (int i=midpoint-1; i>=0;i--) {
         leftRaindropEffect->pixels->push_back(Pixel(i));
     }
 
