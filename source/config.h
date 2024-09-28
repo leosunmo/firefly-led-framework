@@ -35,8 +35,8 @@
 /**
  * Only set one to 1. Select the type of microphone to compile with.
  */
-#define HW_ADC_MIC 1
-#define HW_PDM_MIC 0
+#define HW_ADC_MIC 0
+#define HW_PDM_MIC 1
 
 /**
  * Pin config.

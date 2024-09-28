@@ -263,15 +263,12 @@ void core1_entry(){
 
         bool too_quiet = 0; // Don't do stuff if it's too quiet
 #if HW_ADC_MIC == 1
-            for (q15_t* sample = current_capture_buffer; sample < current_capture_buffer + INPUT_BUFFER_SIZE; sample++){
+        for (q15_t* sample = current_capture_buffer; sample < current_capture_buffer + INPUT_BUFFER_SIZE; sample++) {
             *sample = *sample - 2048; // Center samples around zero
             if( too_quiet && abs(*sample) > 200){  // 200 was chosen for a gain of 80.6, but normal gain is 64 on FireFlyV1
                 too_quiet = 0;
             }
         }
-#endif
-        
-
         if(too_quiet){
             freq_data.freq_energy = 0;
             freq_data.low_freq_energy = 0;
@@ -282,11 +279,13 @@ void core1_entry(){
             continue;
         }
 
+#endif
+        
 #if HW_ADC_MIC == 1
-            arm_shift_q15(current_capture_buffer, 8/**INPUT_SHIFT */, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+        arm_shift_q15(current_capture_buffer, 8/**INPUT_SHIFT */, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
 #endif
 #if HW_PDM_MIC == 1
-            arm_shift_q15(capture_buffer_q15, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+        arm_shift_q15(capture_buffer_q15, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
 #endif
         
         //arm_shift_q15(current_capture_buffer, INPUT_SHIFT, input_q15, INPUT_BUFFER_SIZE);
@@ -321,6 +320,8 @@ void core1_entry(){
         // map the FFT magnitude values to pixel values
         int highest_bin = starting_bin;
         int highest_bin_mag = fft_mag_q15[starting_bin];
+        uint64_t energy_sum = 0;
+        uint16_t num_bins = 0;
         for (int i = starting_bin; i < total_bins; i++) {
             // get the current FFT magnitude value
             q15_t magnitude = fft_mag_q15[i];
@@ -333,29 +334,45 @@ void core1_entry(){
 
             if(bin <= low_bins){
                 //LOWS
-                temp_freq_data.freq_energy += magnitude / total_bins;
+                //temp_freq_data.freq_energy += magnitude / total_bins; // I found this freq_energy to be horribly wrong.
                 temp_freq_data.low_freq_energy += magnitude / low_bins;
+                energy_sum += magnitude;
+                num_bins += 1;
             }else if(bin - low_bins <= high_bins){
                 //HIGHS
-                temp_freq_data.freq_energy += magnitude / total_bins;
+                //temp_freq_data.freq_energy += magnitude / total_bins; // I found this freq_energy to be horribly wrong.
                 temp_freq_data.high_freq_energy += magnitude / high_bins;
+                energy_sum += magnitude;
+                num_bins += 1;
             }else{
                 // Out of range
                 
             }
             
         }
+        temp_freq_data.freq_energy = energy_sum / (double) (num_bins);
         //printf("Highest bin = %d at %d\n", highest_bin, highest_bin_mag);
         timer_stop(timer, sum_bins);
 
-
-        // if(DEBUG_PRINT_MIC){
-        //     
+        // When this is uncommented, it can be set in the debugger to fine-tune this quiet_threshold.
+        //volatile double new_quiet_threshold = 0;
+        static double quiet_threshold = 25.0;
+        // if (new_quiet_threshold) {
+        //     quiet_threshold = new_quiet_threshold;
         // }
+        
+        too_quiet = temp_freq_data.freq_energy < quiet_threshold;
+        if(too_quiet){
+            freq_data.freq_energy = 0;
+            freq_data.low_freq_energy = 0;
+            freq_data.high_freq_energy = 0;
+        } else {
+            freq_data.freq_energy = temp_freq_data.freq_energy;
+            freq_data.low_freq_energy = temp_freq_data.low_freq_energy;
+            freq_data.high_freq_energy = temp_freq_data.high_freq_energy;
+        }
 
-        freq_data.freq_energy = temp_freq_data.freq_energy;
-        freq_data.low_freq_energy = temp_freq_data.low_freq_energy;
-        freq_data.high_freq_energy = temp_freq_data.high_freq_energy;
+        
         //printf("CORE1 %.0f %.0f %.0f\n", freq_data.low_freq_energy, freq_data.high_freq_energy, freq_data.freq_energy);
         timer_start(timer, profile);
         updateSoundProfileLow();
@@ -363,28 +380,34 @@ void core1_entry(){
         timer_stop(timer, profile);
 
         
-    timer_start(timer, print_time);
+        timer_start(timer, print_time);
                 // Visualize the bins:
 #if DEBUG_PRINT_MIC
-        printf("|\n");
+        //printf("|");
+        printf("------------\n");
+        printf("low energy = %f", freq_data.low_freq_energy);
+        printf("high energy = %f", freq_data.high_freq_energy);
+        printf("tmp freq energy = %f\n", temp_freq_data.freq_energy);
+        printf("max = %d\n", highest_bin_mag);
         for (int i = starting_bin; i < total_bins; i++){
-            q15_t magnitude = fft_mag_q15[i];
-            double bin_intensity = (magnitude / (double) highest_bin_mag);
-            printf("%d\t%+6d\n", i, magnitude);
-            // char symbol = ' ';
-            // if (bin_intensity > 0.8) {
-            //     symbol = 'X';
-            // }else if(bin_intensity > 0.5) {
-            //     symbol= 'x';
-            // }else if(bin_intensity > 0.1) {
-            //     symbol = '.';
-            // }
-            // printf("%c", symbol);
+           q15_t magnitude = fft_mag_q15[i];
+           double bin_intensity = (magnitude / (double) highest_bin_mag);
+            
+            //printf("%d\t%+6d\n", i, magnitude);
+            char symbol = ' ';
+            if (bin_intensity > 0.8) {
+                symbol = 'X';
+            }else if(bin_intensity > 0.5) {
+                symbol= 'x';
+            }else if(bin_intensity > 0.1) {
+                symbol = '.';
+            }
+            printf("%c", symbol);
         }
-        printf("|\n");
+        //printf("|\n");
 #endif
-    timer_stop(timer, print_time);
-    timer_stop(timer, sound_fps);
+        timer_stop(timer, print_time);
+        timer_stop(timer, sound_fps);
 
 #if DEBUG_PRINT_MIC_TIMING
         timer_print(timer);

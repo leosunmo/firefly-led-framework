@@ -38,14 +38,14 @@ typedef enum{
 
 typedef struct{
     // We know the centers, and can track their movement
-    float high_freq_center;
-    float low_freq_center;
-    float freq_center;
+    double high_freq_center;
+    double low_freq_center;
+    double freq_center;
 
     // We know the energies, this is how loud it is;
-    float high_freq_energy;
-    float low_freq_energy;
-    float freq_energy;
+    double high_freq_energy;
+    double low_freq_energy;
+    double freq_energy;
 } freq_data_t;
 
 typedef struct{
