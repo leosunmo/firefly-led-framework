@@ -219,5 +219,6 @@ void FireFlyController::givePatternIndex(uint32_t *patternIndex)
 
 void FireFlyController::initMicrophone()
 {
-    Microphone::start();
+    assert(HW_PDM_MIC == 1);
+    Microphone::start(PDM_MIC); // Note, this argument is for cosmetic purposes only. Really, it does not do anything. Use HW_PDM_MIC to select microphone in config.h
 }

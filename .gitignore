@@ -4,3 +4,8 @@ build/*
 .vscode
 !.vscode/launch.json
 utils/picotool/build/*
+*.DS_Store
+
+
+
+

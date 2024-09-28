@@ -22,7 +22,7 @@ extern "C" {
 class Microphone{
     public:
         Microphone();
-        static void start();
+        static void start(mic_type);
         static double getFreqCenter();
         static double getHighFreqCenter();
         static double getLowFreqCenter();

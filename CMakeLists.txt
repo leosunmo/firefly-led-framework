@@ -77,6 +77,7 @@ target_link_libraries(  firefly
                         pico_multicore 
                         hardware_pio 
                         hardware_adc 
+                        hardware_pwm
                         hardware_dma 
                         hardware_irq 
                         CMSISDSPTransform 

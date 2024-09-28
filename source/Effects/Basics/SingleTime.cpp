@@ -4,6 +4,7 @@
 
 void SingleTime::init(){
     profile.brightness = 1;
+    profile.saturation = 1;
     profile.hue = 0;
     profile.Toffset = 0;
     profile.Trise = 400;
@@ -16,6 +17,7 @@ SingleTime* SingleTime::init(single_time_t blueprint){
     profile.index = blueprint.index;
     profile.brightness = blueprint.brightness;
     profile.hue = blueprint.hue;
+    profile.saturation = blueprint.saturation;
     profile.Toffset = blueprint.Toffset;
     profile.Trise = blueprint.Trise;
     profile.Thold = blueprint.Thold;
@@ -34,7 +36,7 @@ void SingleTime::run(){
     }
     uint32_t time = timer->timerMs();
 
-    hsv_t color = {profile.hue, 1, profile.brightness};
+    hsv_t color = {profile.hue, profile.saturation, profile.brightness};
     if(time < profile.Toffset){
         //We are within offset phase
         return; // Do not write to LEDs

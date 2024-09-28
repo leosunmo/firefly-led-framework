@@ -31,13 +31,16 @@ void LEDStrip::setRGB(int index, rgb_t rgb){
 
 
 irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
-    if(index >= numLEDs){
-        index %= numLEDs;
-    }
-    if(index < 0){
-        index = abs(index);
-        index %= numLEDs;
-        index = numLEDs - 1 - index;
+#ifdef LEDS_OFFSET
+    index += LEDS_OFFSET;
+#endif
+    if (index >= NUM_LEDS) {
+        index = index % NUM_LEDS;
+    } else if (index < -NUM_LEDS) {
+        index = index % NUM_LEDS;
+        index += NUM_LEDS;
+    } else if (index < 0) {
+        index += NUM_LEDS;
     }
     //ExecTimer *timer = new ExecTimer();
     //timer->start("setHSV");
@@ -59,6 +62,7 @@ irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
     //timer->add("::hsv2rgb(hsv)");
     
     changesArray[index]->combine(rgb8);
+
     //timer->add("changesArray[index]->combine(rgb)");
 
     //timer->print();
@@ -72,6 +76,13 @@ irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
 }
 
 void LEDStrip::setRGBUnprotected(int index, rgb8_t rgb8){
+#ifdef LEDS_OFFSET
+    index = (index + LEDS_OFFSET) % NUM_LEDS;
+    // Ensure index is positive
+    if (index < 0) {
+        index += NUM_LEDS;
+    }
+#endif
     changesArray[index]->combine(rgb8);
 }
 

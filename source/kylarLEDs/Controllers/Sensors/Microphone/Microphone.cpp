@@ -6,9 +6,15 @@ Microphone::Microphone(){
     // No need for objects
 }
 
-// static
-void Microphone::start(){
-    start_pdm_mic();
+/**
+ * Micrphone start
+ * ---------------
+ * Start the microphone code found in C.
+ * 
+ * @param mic this argument is for cosmetic purposes only. Really, it does not do anything. Use HW_PDM_MIC to select microphone in config.h
+ */
+void Microphone::start(mic_type mic){
+    start_mic(mic);
     initialized = 1;
 }
 

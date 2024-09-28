@@ -6,27 +6,46 @@
 #include "pdm_microphone.h"
 #include "arm_math.h"
 #include "pico/multicore.h"
+#include "../../../../../config.h"
 
 
-// constants
-#define SAMPLE_RATE       4000
-#define FFT_SIZE          512
+#if HW_PDM_MIC == 1
+// PDM Mic constants
+#define SAMPLE_RATE       32000
+#define FFT_SIZE          2048
 #define FFT_MAG_SIZE      FFT_SIZE/2
-#define INPUT_BUFFER_SIZE 128
+#define INPUT_BUFFER_SIZE 1024
+#define INPUT_SHIFT       4 // 2 // TODO: Replace this with something more adjustable...
+#define FFT_BINS_SKIP     0
+#define FFT_MAG_MAX       2000.0
+#endif
+
+#if HW_ADC_MIC == 1
+// ADC Mic constants
+#define SAMPLE_RATE       4000
+#define FFT_SIZE          1024
+#define FFT_MAG_SIZE      FFT_SIZE/2
+#define INPUT_BUFFER_SIZE 256
 #define INPUT_SHIFT       2 // 2
 #define FFT_BINS_SKIP     0
 #define FFT_MAG_MAX       2000.0
+#endif
+
+typedef enum{
+    PDM_MIC,
+    ADC_MIC
+} mic_type;
 
 typedef struct{
     // We know the centers, and can track their movement
-    float high_freq_center;
-    float low_freq_center;
-    float freq_center;
+    double high_freq_center;
+    double low_freq_center;
+    double freq_center;
 
     // We know the energies, this is how loud it is;
-    float high_freq_energy;
-    float low_freq_energy;
-    float freq_energy;
+    double high_freq_energy;
+    double low_freq_energy;
+    double freq_energy;
 } freq_data_t;
 
 typedef struct{
@@ -50,14 +69,12 @@ typedef struct{
 void input_init_q15();
 void hanning_window_init_q15(q15_t* window, size_t size);
 void on_pdm_samples_ready();
-void pdm_core1_entry();
-void start_pdm_mic();
+void core1_entry();
+void start_mic(mic_type mic);
 void pause_pdm_mic();
 void resume_pdm_mic();
 void updateSoundProfileLow();
 void updateSoundProfileHigh();
-
-
 
 int freq_to_bin(float freq);
 float bin_to_freq(int bin);

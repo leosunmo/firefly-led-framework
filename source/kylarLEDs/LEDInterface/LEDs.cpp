@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 std::vector<LEDStrip*> *LEDs::strips;
+bool ledsUseGlobalBrightness = false;
+double* ledsGlobalBrightness;
 LEDs::LEDs(){
 
 
@@ -28,6 +30,9 @@ void LEDs::init(uint8_t numInterfaces){
 void LEDs::setHSV(int i, hsv_t color){
     irgb8_t irgb;
     int first = 1;
+    if(ledsUseGlobalBrightness){
+        color.v *= (*ledsGlobalBrightness);
+    }
     // The reason the stuff going on here is weird, is to make it faster
     // Using the result of the first setHSV to make the next faster
     for(LEDStrip *strip : *strips){
@@ -78,4 +83,9 @@ void LEDs::giveController(Controller * controller){
     for(LEDStrip *strip : *strips){
         strip->giveController(controller);
     }
+}
+
+void LEDs::useGlobalBrightnessControl(bool enable, double* globalBrightness){
+    ledsUseGlobalBrightness = enable;
+    ledsGlobalBrightness = globalBrightness;
 }
