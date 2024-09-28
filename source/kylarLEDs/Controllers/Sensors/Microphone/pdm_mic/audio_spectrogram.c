@@ -23,9 +23,9 @@
 // microphone configuration
 const struct pdm_microphone_config pdm_config = {
     // GPIO pin for the PDM DAT signal
-    .gpio_data = 20,
+    .gpio_data = PDM_MIC_PIN_DATA,
     // GPIO pin for the PDM CLK signal
-    .gpio_clk = 21,
+    .gpio_clk = PDM_MIC_PIN_CLK,
     // PIO instance to use
     .pio = pio1,
     // PIO State Machine instance to use
@@ -36,9 +36,14 @@ const struct pdm_microphone_config pdm_config = {
     .sample_buffer_size = INPUT_BUFFER_SIZE,
 };
 
-
+#if HW_ADC_MIC == 1
 q15_t capture_buffer_q15_a[INPUT_BUFFER_SIZE];
 q15_t capture_buffer_q15_b[INPUT_BUFFER_SIZE];
+#endif
+#if HW_PDM_MIC == 1
+q15_t capture_buffer_q15[INPUT_BUFFER_SIZE];
+#endif
+
 volatile int new_samples_captured = 0;
 bool a_or_b = 0; // 1=a, 0=b
 
@@ -133,7 +138,7 @@ void analog_dma_start(q15_t* capture_buffer) {
 
 void analog_init(){
     // Set the ADC pin (e.g., GPIO26) // CJ_ADC_TEST: For v0, Pot pin is 27; Enc
-    const uint adc_pin = 26;
+    const uint adc_pin = ADC_MIC_PIN;
     adc_init();
     adc_gpio_init(adc_pin);
     adc_select_input(0); // Select ADC input channel 0 (corresponding to GPIO26) // CJ_ADC_TEST: For v0, ADC channel is 1
@@ -147,7 +152,7 @@ void analog_init(){
         false     // Disable byte packing.
     );
 
-    adc_set_clkdiv(160); // Set clock divider to 0 for maximum sampling rate
+    adc_set_clkdiv(320); // Set clock divider to 0 for maximum sampling rate
 
     // adc_run(true);     // Start ADC in free-running mode
 
@@ -158,10 +163,11 @@ void analog_init(){
 
 
 void core1_entry(){
+    //mic_type mic = multicore_fifo_pop_blocking(); // Get the microphone type. PDM or ADC.
     //Init:
     // initialize the hanning window and RFFT instance
     sleep_ms(100); //delay here so that the dma channel doesn't get claimed..
-    mic_type mic = multicore_fifo_pop_blocking();
+    
     // multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
     printf("pdm core1 entry");
 
@@ -172,7 +178,13 @@ void core1_entry(){
     arm_rfft_init_q15(&S_q15, FFT_SIZE, 0, 1);
 
     // Initialize the Microphone hardware
-    analog_init();
+#if HW_ADC_MIC == 1
+        analog_init();
+#endif
+#if HW_PDM_MIC == 1
+    pdm_init();
+#endif
+    
     //Loop:
 
     TimerManager* timer = timer_manager_create();
@@ -209,26 +221,38 @@ void core1_entry(){
     uint32_t irq_status = 0;
     uint32_t loops_count = 0;
 
+#if HW_ADC_MIC == 1
     q15_t* current_capture_buffer;
     q15_t* next_capture_buffer;
     
     a_or_b = true; // Start on A
     analog_dma_start(capture_buffer_q15_a);
+    
+#endif
     while(1) {
         timer_reset(timer);
         timer_start(timer, sound_fps);
+#if HW_ADC_MIC == 1
         current_capture_buffer = a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
         next_capture_buffer =   !a_or_b ? capture_buffer_q15_a : capture_buffer_q15_b;
         a_or_b = !a_or_b; // Switch for next.
+#endif
 
         // Wait for the previous transfer to finish. It should've finished during the FFT stuff.
         timer_start(timer, dma_blocking);
+#if HW_ADC_MIC == 1
         dma_channel_wait_for_finish_blocking(dma_chan);
+#endif
+#if HW_PDM_MIC == 1
+        while (new_samples_captured == 0) { tight_loop_contents(); }
+#endif
         timer_stop(timer, dma_blocking);
 
+#if HW_ADC_MIC == 1
         adc_fifo_drain();
         analog_dma_start(next_capture_buffer); // Start the opposite channel
-        
+#endif
+
         // move old samples to the beginning of the buffer
         timer_start(timer, arm_copy);
         arm_copy_q15(input_q15 + INPUT_BUFFER_SIZE, input_q15, (FFT_SIZE - INPUT_BUFFER_SIZE));
@@ -237,13 +261,16 @@ void core1_entry(){
         // copy new samples to end of the input buffer with a bit shift of INPUT_SHIFT
         timer_start(timer, arm_shift);
 
-        bool too_quiet = 1; // Don't do stuff if it's too quiet
-        for (q15_t* sample = current_capture_buffer; sample < current_capture_buffer + INPUT_BUFFER_SIZE; sample++){
+        bool too_quiet = 0; // Don't do stuff if it's too quiet
+#if HW_ADC_MIC == 1
+            for (q15_t* sample = current_capture_buffer; sample < current_capture_buffer + INPUT_BUFFER_SIZE; sample++){
             *sample = *sample - 2048; // Center samples around zero
             if( too_quiet && abs(*sample) > 200){  // 200 was chosen for a gain of 80.6, but normal gain is 64 on FireFlyV1
                 too_quiet = 0;
             }
         }
+#endif
+        
 
         if(too_quiet){
             freq_data.freq_energy = 0;
@@ -255,7 +282,13 @@ void core1_entry(){
             continue;
         }
 
-        arm_shift_q15(current_capture_buffer, 8/**INPUT_SHIFT */, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+#if HW_ADC_MIC == 1
+            arm_shift_q15(current_capture_buffer, 8/**INPUT_SHIFT */, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+#endif
+#if HW_PDM_MIC == 1
+            arm_shift_q15(capture_buffer_q15, INPUT_SHIFT, input_q15 + (FFT_SIZE - INPUT_BUFFER_SIZE), INPUT_BUFFER_SIZE);
+#endif
+        
         //arm_shift_q15(current_capture_buffer, INPUT_SHIFT, input_q15, INPUT_BUFFER_SIZE);
         timer_stop(timer, arm_shift);
 
@@ -546,22 +579,15 @@ void on_pdm_samples_ready()
 {
     // callback from library when all the samples in the library
     // internal sample buffer are ready for reading
-    new_samples_captured = pdm_microphone_read(capture_buffer_q15_a, FFT_MAG_SIZE);
+#if HW_PDM_MIC == 1
+    new_samples_captured = pdm_microphone_read(capture_buffer_q15, FFT_MAG_SIZE); 
+#endif
 }
 
-void start_pdm_mic(mic_type mic){
-    multicore_fifo_push_blocking(mic);
+void start_mic(mic_type mic){
+    //multicore_fifo_push_blocking(mic);
     multicore_launch_core1(core1_entry);
 }
-
-void pause_pdm_mic(){
-    multicore_lockout_start_blocking();
-}
-
-void resume_pdm_mic(){
-    multicore_lockout_end_blocking();
-}
-
 
 int freq_to_bin(float freq){
     int bin = (int)roundf((freq*0.064 - 0.0154));

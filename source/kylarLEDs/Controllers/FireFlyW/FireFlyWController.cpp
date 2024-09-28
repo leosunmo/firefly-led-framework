@@ -237,8 +237,9 @@ void FireFlyWController::givePatternIndex(uint32_t *patternIndex)
 
 void FireFlyWController::initMicrophone()
 {
-    // This will go to the multicore init which also enables WiFi
-    Microphone::start(PDM_MIC);
+    assert(HW_PDM_MIC == 1);
+    // This will go to the multicore init which also enables WiFi. (Actually - that's questionable, it used to, but not anymore. Find it on an old home-assistant branch...)
+    Microphone::start(PDM_MIC); // Note, this argument is for cosmetic purposes only. Really, it does not do anything. Use HW_PDM_MIC to select microphone in config.h
 }
 
 // What do I need to do:

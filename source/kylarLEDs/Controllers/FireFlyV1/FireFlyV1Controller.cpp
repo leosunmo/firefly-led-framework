@@ -250,5 +250,6 @@ void FireFlyV1Controller::givePatternIndex(uint32_t *patternIndex)
 
 void FireFlyV1Controller::initMicrophone()
 {
-    Microphone::start(ADC_MIC);
+    // assert(HW_ADC_MIC == 1); // Commenting out because we can accept both on this controller...
+    Microphone::start(ADC_MIC); // This argument does nothing! Use the config.h / HW_ADC_MIC / HW_PDM_MIC to select the microphone type.
 }

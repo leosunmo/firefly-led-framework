@@ -28,9 +28,23 @@
  * MQTT Enable: Turn on Wifi in Core1, but for MQTT + Home Assistant in Station mode
  * WiFi Enable: Turn on Wifi in Core1, but host a network + website in Access Point mode
  */
-#define MICROPHONE_ENABLE 0
+#define MICROPHONE_ENABLE 1
 #define MQTT_ENABLE 0 // picow only.
 #define WIFI_ENABLE 0 // picow only.
+
+/**
+ * Only set one to 1. Select the type of microphone to compile with.
+ */
+#define HW_ADC_MIC 1
+#define HW_PDM_MIC 0
+
+/**
+ * Pin config.
+ * For FireFlyV1.2, [20,21] is the linkmems mic, and [12,13] is the ST mic.
+ */
+#define ADC_MIC_PIN 26
+#define PDM_MIC_PIN_DATA 20
+#define PDM_MIC_PIN_CLK  21
 
 
 
