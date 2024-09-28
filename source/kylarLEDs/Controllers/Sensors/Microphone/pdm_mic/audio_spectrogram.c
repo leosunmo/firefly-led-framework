@@ -157,11 +157,11 @@ void analog_init(){
 }
 
 
-void pdm_core1_entry(){
+void core1_entry(){
     //Init:
     // initialize the hanning window and RFFT instance
     sleep_ms(100); //delay here so that the dma channel doesn't get claimed..
-
+    mic_type mic = multicore_fifo_pop_blocking();
     // multicore_lockout_victim_init();// NEEDED FOR MULTICORE LOCKOUT
     printf("pdm core1 entry");
 
@@ -549,8 +549,9 @@ void on_pdm_samples_ready()
     new_samples_captured = pdm_microphone_read(capture_buffer_q15_a, FFT_MAG_SIZE);
 }
 
-void start_pdm_mic(){
-    multicore_launch_core1(pdm_core1_entry);
+void start_pdm_mic(mic_type mic){
+    multicore_fifo_push_blocking(mic);
+    multicore_launch_core1(core1_entry);
 }
 
 void pause_pdm_mic(){

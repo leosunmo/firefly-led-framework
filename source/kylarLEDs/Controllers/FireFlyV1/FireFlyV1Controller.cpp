@@ -250,5 +250,5 @@ void FireFlyV1Controller::givePatternIndex(uint32_t *patternIndex)
 
 void FireFlyV1Controller::initMicrophone()
 {
-    Microphone::start();
+    Microphone::start(ADC_MIC);
 }

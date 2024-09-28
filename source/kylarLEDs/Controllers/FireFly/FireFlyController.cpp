@@ -219,5 +219,5 @@ void FireFlyController::givePatternIndex(uint32_t *patternIndex)
 
 void FireFlyController::initMicrophone()
 {
-    Microphone::start();
+    Microphone::start(PDM_MIC);
 }

@@ -7,8 +7,8 @@ Microphone::Microphone(){
 }
 
 // static
-void Microphone::start(){
-    start_pdm_mic();
+void Microphone::start(mic_type mic){
+    start_pdm_mic(mic);
     initialized = 1;
 }
 

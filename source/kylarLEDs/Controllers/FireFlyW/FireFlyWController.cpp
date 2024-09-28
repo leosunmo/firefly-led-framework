@@ -238,7 +238,7 @@ void FireFlyWController::givePatternIndex(uint32_t *patternIndex)
 void FireFlyWController::initMicrophone()
 {
     // This will go to the multicore init which also enables WiFi
-    Microphone::start();
+    Microphone::start(PDM_MIC);
 }
 
 // What do I need to do:

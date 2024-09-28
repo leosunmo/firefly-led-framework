@@ -17,6 +17,11 @@
 #define FFT_BINS_SKIP     0
 #define FFT_MAG_MAX       2000.0
 
+typedef enum{
+    PDM_MIC,
+    ADC_MIC
+} mic_type;
+
 typedef struct{
     // We know the centers, and can track their movement
     float high_freq_center;
@@ -50,8 +55,8 @@ typedef struct{
 void input_init_q15();
 void hanning_window_init_q15(q15_t* window, size_t size);
 void on_pdm_samples_ready();
-void pdm_core1_entry();
-void start_pdm_mic();
+void core1_entry();
+void start_pdm_mic(mic_type mic);
 void pause_pdm_mic();
 void resume_pdm_mic();
 void updateSoundProfileLow();
