@@ -1,0 +1,17 @@
+{
+  "name": "firefly-led-framework-environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "settings": {
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.intelliSenseMode": "gcc-x64"
+  },
+  "extensions": [
+    "ms-vscode.cmake-tools",
+    "ms-vscode.cpptools"
+  ],
+  "postCreateCommand": "mkdir -p build && cd build && cmake .. && make",
+  "workspaceFolder": "/app"
+}
