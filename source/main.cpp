@@ -27,7 +27,7 @@
 using namespace std;
 int main(){
     if(DEBUG_DELAY_MAIN) {
-        sleep_ms(3000);
+        sleep_ms(5000);
     }
     
     // Initialize framework infrastructure
@@ -83,7 +83,8 @@ int main(){
         if(DEBUG_PRINT_MAIN){
              // mem usage:
             struct mallinfo mi = mallinfo();
-            printf("Total allocated space (bytes):      %d\n", mi.uordblks); // max is about 238516 bytes ( unless there is ghost memory )~
+            printf("Total allocated space (bytes):  %d\n", mi.uordblks); // max is about 238516 bytes ( unless there is ghost memory )~
+            printf("Total free space (bytes):       %d\n", mi.fordblks); // Free space left (in the current block?)
         }
         if(currentPatternIndex == nextPatternIndex){
             //We are remaining on the same pattern

@@ -217,7 +217,7 @@ double FireFlyV1Controller::getBrightness()
     {
         return brightness;
     }
-    brightness = brightness * brightness * brightness;
+    brightness = brightness * brightness;
     return brightness;
 }
 

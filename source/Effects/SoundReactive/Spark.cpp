@@ -63,7 +63,7 @@ void Spark::run(){
     
 }
 
-void Spark::reset(int position, int direction, double brightness, int steps, double hue, double hue_shift, double speed){
+void Spark::reset(int position, int direction, float brightness, int steps, float hue, float hue_shift, float speed){
     /*
      * The spark is a reusable object.
      * Get it ready for next time.
