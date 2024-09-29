@@ -18,15 +18,16 @@ void ShakeelFlash::init(){
         pixels->push_back(eff);
     }
 
-    for(int i = 0; i < stripLen; i++){
-        SoundPixel * eff = new SoundPixel();
-        //printf("sound pixel size = %d\n", sizeof(SoundPixel));
-        eff->i = i;
-        eff->hue = 0.5;
-        eff->strip = 1;
-        Effect::engine->apply(eff);
-        pixels->push_back(eff);
-    }
+    // A second loop for a second strip
+    // for(int i = 0; i < stripLen; i++){
+    //     SoundPixel * eff = new SoundPixel();
+    //     //printf("sound pixel size = %d\n", sizeof(SoundPixel));
+    //     eff->i = i;
+    //     eff->hue = 0.5;
+    //     eff->strip = 1;
+    //     Effect::engine->apply(eff);
+    //     pixels->push_back(eff);
+    // }
 
     secTimer = new Timing();
     avgTimer = new Timing();

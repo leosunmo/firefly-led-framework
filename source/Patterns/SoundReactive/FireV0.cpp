@@ -21,10 +21,10 @@ void FireV0::init(){
     for(int i = 0; i < 4; i++){
         triangles[i] = new Triangle();
     }
-    triangles[0]->setPeriodMs(4000);
-    triangles[1]->setPeriodMs(3000);
-    triangles[2]->setPeriodMs(600);
-    triangles[3]->setPeriodMs(500);
+    triangles[0]->setPeriodMs(1700);
+    triangles[1]->setPeriodMs(1300);
+    triangles[2]->setPeriodMs(1100);
+    triangles[3]->setPeriodMs(700);
 
     Gradient *gradient = new Gradient();
     gradient->start = 0;
