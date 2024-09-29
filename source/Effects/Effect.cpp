@@ -10,7 +10,7 @@ Effect::~Effect(){
     
 }
 
-int Effect::isDone(){
+bool Effect::isDone(){
     return this->done;
 }
 

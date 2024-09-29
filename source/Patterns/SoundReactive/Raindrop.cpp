@@ -38,6 +38,6 @@ void Raindrop::run() {}
 
 void Raindrop::release(){
     delete(myTiming);
-    delete(rightRaindropEffect);
-    delete(leftRaindropEffect);
+    //delete(rightRaindropEffect); Don't need to delete the effects, the EffectEngine takes care of it :) -ky
+    //delete(leftRaindropEffect);
 }
