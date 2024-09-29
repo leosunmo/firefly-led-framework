@@ -9,7 +9,7 @@ class Raindrop : public Pattern{
         void init();
         void run();
         void release();
-
+        double global_brightness = 1.0;
     private:
         Timing *myTiming;
         int startOffset = 9; // skip this many LEDs from the start

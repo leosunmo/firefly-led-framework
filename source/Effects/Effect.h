@@ -20,10 +20,10 @@ class Effect {
         virtual void init() = 0;
         static void giveEngine(EffectEngine * effectEngine);
         static EffectEngine *engine;
-        int isDone();
+        bool isDone();
         int ID = -1;
     protected:
-        int done = 0;
-        int initialized = 0;
+        bool initialized = 0;
+        bool done = 0;
         
 };

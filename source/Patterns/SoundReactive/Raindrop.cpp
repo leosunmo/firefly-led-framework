@@ -32,12 +32,22 @@ void Raindrop::init(){
     Effect::engine->apply(rightRaindropEffect);
     Effect::engine->apply(leftRaindropEffect);
 
+    LEDs::useGlobalBrightnessControl(true, &(this->global_brightness));
 }
 
-void Raindrop::run() {}
+void Raindrop::run() {
+    double mic_brightness = (Microphone::getLowNormal() + Microphone::getHighNormal())/2.0;
+    double new_brightness = mic_brightness * 0.3 + 0.7;
+    if (new_brightness > global_brightness) {
+        global_brightness = (new_brightness * 1.0 + global_brightness * 50.0)/51.0;;;
+    } else {
+        global_brightness = (new_brightness * 1.0 + global_brightness * 100.0)/101.0;;
+    }
+    
+}
 
 void Raindrop::release(){
     delete(myTiming);
-    delete(rightRaindropEffect);
-    delete(leftRaindropEffect);
+    //delete(rightRaindropEffect); Don't need to delete the effects, the EffectEngine takes care of it :) -ky
+    //delete(leftRaindropEffect);
 }

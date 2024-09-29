@@ -40,7 +40,7 @@ class FireFlyV1Controller : public Controller{
 
         static strip_t strips[NUM_STRIPS];
         // uint8_t PX_pins[PX_PINS] = {14, 15, 16, 9};
-        uint8_t PX_pins[PX_PINS] = {16, 15, 14};
+        uint8_t PX_pins[PX_PINS] = {14, 16, 15};
         uint8_t PX_sms[PX_PINS] = {0, 1, 2};
         uint8_t bitflipLUT[256];
         uint8_t status_led = 10; // GPIO 10 for status LED

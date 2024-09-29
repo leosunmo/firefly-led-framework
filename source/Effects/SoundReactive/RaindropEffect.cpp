@@ -25,7 +25,7 @@ void RaindropEffect::move_pixel(int position) {
 }
 
 void RaindropEffect::run(){
-    if (myTiming->everyMs(500)) {
+    if (myTiming->everyMs(1)) {
         micValue = pow(Microphone::getLowNormal(),2)*1000;
         if (micValue <= previousMicValue) {
             micValue = MIN((double)(micValue*1.0+previousMicValue*99.0)/100.0, 1000);
@@ -65,5 +65,5 @@ void RaindropEffect::run(){
 }
 
 RaindropEffect::~RaindropEffect(){
-    
+    delete(pixels);
 }

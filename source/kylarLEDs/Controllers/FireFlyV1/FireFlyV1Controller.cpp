@@ -24,7 +24,7 @@ FireFlyV1Controller::FireFlyV1Controller()
 
     this->timing = new Timing();
 
-    setStatusLED(25);
+    setStatusLED(1);
 }
 
 
@@ -203,7 +203,9 @@ double FireFlyV1Controller::getBrightness()
 {
     static double brightness = 0;
     static double lastPot = 0;
-    return 0.7; // Remove this, hardcode high while testing // CJ_ADC_TEST
+#ifdef HARDCODE_BRIGHTNESS
+    return HARDCODE_BRIGHTNESS;
+#endif
     if (timing->takeMsEvery(10))
     {
         double newPot = analogPot->getValue();
@@ -215,7 +217,7 @@ double FireFlyV1Controller::getBrightness()
     {
         return brightness;
     }
-    brightness = brightness * brightness * brightness;
+    brightness = brightness * brightness;
     return brightness;
 }
 

@@ -16,6 +16,7 @@
 #define NUM_STRIPS 1
 #define NUM_LEDS 49
 #define LEDS_OFFSET -6
+//#define HARDCODE_BRIGHTNESS 0.7 // Comment this out if you don't want to hardcode the brightness. This overrides the Potentiometer.
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////
@@ -89,7 +90,7 @@
 #define DEBUG_PRINT_MAIN 1
 #define DEBUG_PRINT_MIC 0
 #define DEBUG_PRINT_MIC_TIMING 0
-#define DEBUG_PRINT_FLASH 0
+#define DEBUG_PRINT_FLASH 1
 #define DEBUG_PRINT_OTHER 0
 
 ////////////////////////////////////////////////////////////

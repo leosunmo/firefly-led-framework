@@ -27,7 +27,7 @@
 using namespace std;
 int main(){
     if(DEBUG_DELAY_MAIN) {
-        sleep_ms(3000);
+        sleep_ms(5000);
     }
     
     // Initialize framework infrastructure
@@ -43,12 +43,10 @@ int main(){
     //Push back all the patterns you want!
     //ADD YOUR PATTERNS HERE!
     //ex. patterns->push_back(new ExamplePattern());
-    patterns->push_back(new SpaceX());
-    patterns->push_back(new Raindrop());
     patterns->push_back(new FireV0(false));
     patterns->push_back(new FireV0(true));
-    patterns->push_back(new FireFlies());
-    patterns->push_back(new WirelessPattern());
+    patterns->push_back(new Raindrop());
+    patterns->push_back(new SpaceX());
     patterns->push_back(new HeartPattern());
     patterns->push_back(new CirclesPattern());
     patterns->push_back(new Shakeel());
@@ -83,7 +81,8 @@ int main(){
         if(DEBUG_PRINT_MAIN){
              // mem usage:
             struct mallinfo mi = mallinfo();
-            printf("Total allocated space (bytes):      %d\n", mi.uordblks); // max is about 238516 bytes ( unless there is ghost memory )~
+            printf("Total allocated space (bytes):  %d\n", mi.uordblks); // max is about 238516 bytes ( unless there is ghost memory )~
+            printf("Total free space (bytes):       %d\n", mi.fordblks); // Free space left (in the current block?)
         }
         if(currentPatternIndex == nextPatternIndex){
             //We are remaining on the same pattern

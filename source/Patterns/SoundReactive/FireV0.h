@@ -23,8 +23,8 @@ class FireV0 : public Pattern{
     
     private:
         int initted = 0;
-        const uint32_t num_sparks = 200;
-        Spark* sparks[200];
+        static const uint32_t num_sparks = 80;
+        Spark* sparks[num_sparks];
         void create_new_sparks(int x_sparks);
         int calc_num_new_sparks();
         Timing *avgTimer;

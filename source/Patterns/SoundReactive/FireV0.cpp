@@ -21,10 +21,10 @@ void FireV0::init(){
     for(int i = 0; i < 4; i++){
         triangles[i] = new Triangle();
     }
-    triangles[0]->setPeriodMs(4000);
-    triangles[1]->setPeriodMs(3000);
-    triangles[2]->setPeriodMs(600);
-    triangles[3]->setPeriodMs(500);
+    triangles[0]->setPeriodMs(1700);
+    triangles[1]->setPeriodMs(1300);
+    triangles[2]->setPeriodMs(1100);
+    triangles[3]->setPeriodMs(700);
 
     Gradient *gradient = new Gradient();
     gradient->start = 0;
@@ -122,19 +122,20 @@ void FireV0::run(){
     avgLoops = avgTimer->takeMsEvery(1);
     static int quiet_sparks = 30;
     static int triangle_coeffs[] = {20,20,20,20};
+    
+    /**
+     * 
+     * Add a few triangle waves of different periods here
+     * To get a nicer brightness and differing number of sparks
+     * For the fire effect :)
+     */
+    
+    global_brightness = 0.8;
+    quiet_sparks = 0;
+    for(int i = 0; i < num_triangles; i++){
+        quiet_sparks += triangles[i]->value() * triangle_coeffs[i];
+    }
     if(useSound == false){
-        /**
-         * 
-         * Add a few triangle waves of different periods here
-         * To get a nicer brightness and differing number of sparks
-         * For the fire effect :)
-         */
-        
-        global_brightness = 0.8;
-        quiet_sparks = 0;
-        for(int i = 0; i < num_triangles; i++){
-            quiet_sparks += triangles[i]->value() * triangle_coeffs[i];
-        }
         create_new_sparks(quiet_sparks);
         return;
     }
@@ -192,8 +193,12 @@ void FireV0::run(){
             }
         }
     }
-    global_brightness = 0.35*result+0.65;
-    create_new_sparks((int)(result*5)*(result * 5) + 2);
+    global_brightness = 0.3*result+0.7;
+    //create_new_sparks((int)(result*5)*(result * 5) + 2);
+    static float quiet_sparks_coeff = 3.0;
+    volatile float new_quiet_sparks_coeff = 0;
+    if(new_quiet_sparks_coeff) quiet_sparks_coeff = new_quiet_sparks_coeff;
+    create_new_sparks((int)(result * 25) + quiet_sparks/quiet_sparks_coeff);
     
     //FireV0_logo->setBrightness((float)result);
 }
