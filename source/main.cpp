@@ -1,6 +1,7 @@
 
 #include "stdio.h"
 #include <vector>
+#include "hardware/uart.h"
 #include <string>
 #include "Effects/Effect.h"
 #include "kylarLEDs/LEDInterface/LEDs.h"
@@ -26,6 +27,41 @@
 
 using namespace std;
 int main(){
+
+    // Initialize standard I/O
+    stdio_init_all();
+
+    // Initialize UART1 with baud rate 19200
+    uart_init(uart1, 19200);
+
+    // Set the GPIO pins for UART1
+    gpio_set_function(4, GPIO_FUNC_UART); // UART1 TX (not used in this example)
+    gpio_set_function(5, GPIO_FUNC_UART); // UART1 RX
+
+    // Buffer to accumulate received data
+    char buffer[256];
+    int idx = 0;
+
+    while (true) {
+        // Read data from UART1
+        while (uart_is_readable(uart1)) {
+            char ch = uart_getc(uart1);
+            // Accumulate into buffer
+            if (ch == '\n' || ch == '\r') {
+                buffer[idx] = '\0'; // Null-terminate the string
+                printf("Received from ESP32-C3: %s\n", buffer);
+                idx = 0; // Reset buffer index
+            } else if (idx < sizeof(buffer) - 1) {
+                buffer[idx++] = ch;
+            } else {
+                // Buffer overflow, reset index
+                idx = 0;
+            }
+        }
+        // Sleep to avoid busy waiting
+        sleep_ms(10);
+    }
+    
     if(DEBUG_DELAY_MAIN) {
         sleep_ms(5000);
     }
