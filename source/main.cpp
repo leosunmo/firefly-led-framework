@@ -5,7 +5,7 @@
 #include "Effects/Effect.h"
 #include "kylarLEDs/LEDInterface/LEDs.h"
 #include "kylarLEDs/EffectEngine/EffectEngine.h"
-#include "kylarLEDs/Controllers/FireFlyV1/FireFlyV1Controller.h"
+#include "kylarLEDs/Controllers/FireFlyV2/FireFlyV2Controller.h"
 #include "Patterns/Examples/ExamplePattern.h"
 #include "Patterns/Examples/FireFlies.h"
 #include "Patterns/Examples/FireFliesSame.h"
@@ -31,7 +31,7 @@ int main(){
     }
     
     // Initialize framework infrastructure
-    Controller *ledController = new FireFlyV1Controller();
+    Controller *ledController = new FireFlyV2Controller();
     
     EffectEngine *effectEngine = new EffectEngine();
     LEDs::init(NUM_STRIPS); // Initializing # of outputs
@@ -43,13 +43,13 @@ int main(){
     //Push back all the patterns you want!
     //ADD YOUR PATTERNS HERE!
     //ex. patterns->push_back(new ExamplePattern());
+    patterns->push_back(new Shakeel());
     patterns->push_back(new FireV0(false));
     patterns->push_back(new FireV0(true));
     patterns->push_back(new Raindrop());
     patterns->push_back(new SpaceX());
     patterns->push_back(new HeartPattern());
     patterns->push_back(new CirclesPattern());
-    patterns->push_back(new Shakeel());
     patterns->push_back(new ShakeelFlash());
 
 

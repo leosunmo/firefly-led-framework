@@ -1,0 +1,67 @@
+#pragma once
+#include "../Controller.h"
+#include "rp2040_pio.h"
+#include "../Sensors/Potentiometer/Potentiometer.h"
+#include "../Sensors/Encoder/Encoder.h"
+#include "../Sensors/Button/Button.h"
+#include "../Sensors/Microphone/Microphone.h"
+#include "../../Utility/Timing.h"
+
+#define PX_PINS 3
+
+typedef struct {
+    uint8_t pin;
+    uint8_t sm;
+    uint8_t dma_chan;
+    uint8_t outPointer[NUM_LEDS*3];
+} strip_t;
+
+class FireFlyV2Controller : public Controller{
+    public:
+        FireFlyV2Controller();
+        //using Controller::Controller;
+        void outputLEDs(uint8_t strip, uint8_t *leds, uint32_t N); // leds is an array, N is the length
+        uint64_t getCurrentTimeMillis();
+        uint64_t getCurrentTimeMicros();
+        double getHue();
+        double getBrightness();
+        static void handleDMA();
+        void givePatternIndex(uint32_t *patternIndex);
+    protected:
+        void initCommunication();
+        void initHue(); // Change hue via encoder
+        void initBrightness(); // Change the brightness via potentiometer
+        void initPatternButton(); // Change the patternIndex via button press
+        void initOutput();
+        void initMicrophone();
+    private:
+        void initDMA(PIO pio, uint sm);
+        void setStatusLED(uint8_t brightness);
+
+        static strip_t strips[NUM_STRIPS];
+        // uint8_t PX_pins[PX_PINS] = {14, 15, 16, 9};
+        uint8_t PX_pins[PX_PINS] = {1, 25};//, 15};
+        uint8_t PX_sms[PX_PINS] = {0, 1};///,2};
+        uint8_t bitflipLUT[256];
+        uint8_t status_led = 2; // GPIO 2 for status LED
+        static absolute_time_t channel_end_times[NUM_STRIPS];
+        
+        //uint8_t PX_pin = 17; // 16 for 1, 17 for 2
+        //uint8_t PX_sm = 0;
+        PIO pio = pio0;
+        //dma_channel_config *c;
+
+        //PINS:
+
+        uint8_t pot_gpio = 27;
+        uint8_t boot_button = 22;
+        uint8_t encoder_a = 23;
+        uint8_t encoder_b = 24;
+        uint8_t encoder_button = 25;
+        
+        Potentiometer *analogPot;
+        Encoder *encoder;
+        Timing *timing;
+        Button *button;
+        Microphone *microphone;
+};
