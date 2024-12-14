@@ -114,14 +114,16 @@ void FireFlyV2Controller::initOutput()
 void FireFlyV2Controller::initCommunication()
 {
     stdio_init_all();
+
     
-    for (int i = 0; i < 10; i++)
-    {
-        setStatusLED(255);
-        sleep_ms(20);
-        setStatusLED(0);
-        sleep_ms(20);
-    }
+    // Initialize UART1 with baud rate 19200
+    uart_init(uart1, 19200);
+
+    // Set the GPIO pins for UART1
+    gpio_set_function(4, GPIO_FUNC_UART); // UART1 TX (not used in this example)
+    gpio_set_function(5, GPIO_FUNC_UART); // UART1 RX
+
+
 
     printf("Communication established\n");
 
@@ -199,6 +201,31 @@ double FireFlyV2Controller::getBrightness()
 {
     static double brightness = 0;
     static double lastPot = 0;
+
+    // Buffer to accumulate received data
+    char buffer[256];
+    int idx = 0;
+
+
+    // Read data from UART1
+    while (uart_is_readable(uart1)) {
+        setStatusLED(255);
+        char ch = uart_getc(uart1);
+        // Accumulate into buffer
+        if (ch == '\n' || ch == '\r') {
+            buffer[idx] = '\0'; // Null-terminate the string
+            printf("Received from ESP32-C3: %s\n", buffer);
+            idx = 0; // Reset buffer index
+        } else if (idx < sizeof(buffer) - 1) {
+            buffer[idx++] = ch;
+        } else {
+            // Buffer overflow, reset index
+            idx = 0;
+        }
+        setStatusLED(1);
+    }
+
+
 #ifdef HARDCODE_BRIGHTNESS
     return HARDCODE_BRIGHTNESS;
 #endif
