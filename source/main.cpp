@@ -11,6 +11,7 @@
 #include "Patterns/Examples/FireFliesSame.h"
 #include "Patterns/Wireless/WirelessPattern.h"
 #include "Patterns/SoundReactive/Shakeel.h"
+#include "Patterns/SoundReactive/Bounce.h"
 #include "Patterns/SoundReactive/ShakeelFlash.h"
 #include "Patterns/SoundReactive/SpaceX.h"
 #include "Patterns/SoundReactive/FireV0.h"
@@ -42,15 +43,38 @@ int main(){
     vector<Pattern*> *patterns = new vector<Pattern*>();
     //Push back all the patterns you want!
     //ADD YOUR PATTERNS HERE!
-    //ex. patterns->push_back(new ExamplePattern());
-    patterns->push_back(new Shakeel());
-    patterns->push_back(new FireV0(false));
-    patterns->push_back(new FireV0(true));
-    patterns->push_back(new Raindrop());
-    patterns->push_back(new SpaceX());
-    patterns->push_back(new HeartPattern());
-    patterns->push_back(new CirclesPattern());
-    patterns->push_back(new ShakeelFlash());
+    // Example pattern configurations
+    BounceConfig config1 = {
+        .solidBar = false,
+        .splitBar = true,
+        .highLowInput = false,
+    };
+
+    BounceConfig config2 = {
+        .solidBar = false,
+        .splitBar = true,
+        .highLowInput = true,
+    };
+    BounceConfig config3 = {
+        .solidBar = false,
+        .splitBar = true,
+        .highLowInput = true,
+        .maxThickness = 3,
+    };
+
+    // Add patterns to the vector
+    patterns->push_back(new Bounce(config1));
+    patterns->push_back(new Bounce(config2));
+    patterns->push_back(new Bounce(config3));
+    // patterns->push_back(new Bounce(true));
+    // patterns->push_back(new Shakeel());
+    // patterns->push_back(new FireV0(false));
+    // patterns->push_back(new FireV0(true));
+    // patterns->push_back(new Raindrop());
+    // patterns->push_back(new SpaceX());
+    // patterns->push_back(new HeartPattern());
+    // patterns->push_back(new CirclesPattern());
+    // patterns->push_back(new ShakeelFlash());
 
 
     //Initialize main loop variables

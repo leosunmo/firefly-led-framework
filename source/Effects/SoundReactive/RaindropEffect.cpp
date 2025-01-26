@@ -3,7 +3,7 @@
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
 
 void RaindropEffect::init(){
-    printf("Initialized raindropEffect");
+    printf("Initialized raindropEffect\n");
     pixels = new std::vector<Pixel>();
 }
 
@@ -32,9 +32,9 @@ void RaindropEffect::run(){
         }
         previousMicValue = micValue;
 
-        if (myTiming->everyMs(2000)) {
-            printf("micValue: %f", micValue);
-        }
+        // if (myTiming->everyMs(2000)) {
+        //     printf("micValue: %f\n", micValue);
+        // }
         
         // Add water to a random pixel sometimes, more often based on micValue
         if (rand() % 10000 < 5 + micValue) {

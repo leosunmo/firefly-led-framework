@@ -9,6 +9,7 @@
 SpaceX::~SpaceX() {}
 
 void SpaceX::init(){
+    printf("Initialized SpaceX\n");
     SpaceXLogo *spacex_logo = new SpaceXLogo();
     spacex_logo->init();
     Effect::engine->apply(spacex_logo);

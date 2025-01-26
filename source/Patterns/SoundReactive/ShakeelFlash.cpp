@@ -6,6 +6,7 @@
 
 
 void ShakeelFlash::init(){
+    printf("Initialized ShakeelFlash\n");
     pixels = new std::vector<SoundPixel*>();
     int stripLen = LEDs::strip(0)->num();
     for(int i = 0; i < stripLen; i++){

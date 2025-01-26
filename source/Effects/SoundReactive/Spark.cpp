@@ -4,6 +4,7 @@
 #include "../../kylarLEDs/Utility/Waveforms/Triangle.h"
 
 void Spark::init(){
+    printf("Initialized Spark\n");
     speed = 1.0;
     position = 0;
     blueprint.brightness = 1;

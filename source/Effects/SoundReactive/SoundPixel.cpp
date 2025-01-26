@@ -3,7 +3,7 @@
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
 
 void SoundPixel::init(){
-    
+    printf("Initialized SoundPixel\n");
 }
 
 void SoundPixel::run(){

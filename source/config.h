@@ -14,9 +14,9 @@
  * 
  */
 #define NUM_STRIPS 1
-#define NUM_LEDS 49
-#define LEDS_OFFSET -6
-#define HARDCODE_BRIGHTNESS 0.5 // Comment this out if you don't want to hardcode the brightness. This overrides the Potentiometer.
+#define NUM_LEDS 287
+// #define LEDS_OFFSET -6
+#define HARDCODE_BRIGHTNESS 0.7 // Comment this out if you don't want to hardcode the brightness. This overrides the Potentiometer.
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////
@@ -87,7 +87,7 @@
 /////////                DEBUG                   ////////////
 ////////////////////////////////////////////////////////////
 #define DEBUG_DELAY_MAIN 0 // Used to give time to start Serial Monitoring
-#define DEBUG_PRINT_MAIN 1
+#define DEBUG_PRINT_MAIN 0
 #define DEBUG_PRINT_MIC 0
 #define DEBUG_PRINT_MIC_TIMING 0
 #define DEBUG_PRINT_FLASH 0
