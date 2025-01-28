@@ -31,9 +31,17 @@ int main(){
         sleep_ms(5000);
     }
     
+
+    // Initialize encoders
+    Encoder *hueEncoder = new Encoder(ENCODER_HUE_A, ENCODER_HUE_B);
+
+    // Initialize buttons
+    Button *patternButton = new Button(ENCODER_PATTERN_BUTTON);
+
     // Initialize framework infrastructure
-    Controller *ledController = new FireFlyV2Controller();
-    
+    Controller *ledController = new FireFlyV2Controller(hueEncoder, patternButton);
+
+    // Initialize the effect engine
     EffectEngine *effectEngine = new EffectEngine();
     LEDs::init(NUM_STRIPS); // Initializing # of outputs
     LEDs::setNum(NUM_LEDS); // Setting all strips to 120 LEDs
@@ -74,7 +82,7 @@ int main(){
     // patterns->push_back(new SpaceX());
     // patterns->push_back(new HeartPattern());
     // patterns->push_back(new CirclesPattern());
-    // patterns->push_back(new ShakeelFlash());
+    patterns->push_back(new ShakeelFlash());
 
 
     //Initialize main loop variables
