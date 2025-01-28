@@ -9,15 +9,16 @@
 
 absolute_time_t FireFlyV2Controller::channel_end_times[NUM_STRIPS];
 strip_t FireFlyV2Controller::strips[NUM_STRIPS];
-FireFlyV2Controller::FireFlyV2Controller()
+FireFlyV2Controller::FireFlyV2Controller(Encoder *hueEncoder, Button *patternButton)
+    : hueEncoder(hueEncoder), patternButton(patternButton)
 {
+
     setStatusLED(255);
 
     initCommunication();
     initBrightness();
-    initHue();
-    initPatternButton();
-    if(MICROPHONE_ENABLE){
+    if (MICROPHONE_ENABLE)
+    {
         initMicrophone();
     }
     initOutput();
@@ -25,16 +26,27 @@ FireFlyV2Controller::FireFlyV2Controller()
     this->timing = new Timing();
 
     setStatusLED(10);
-}
 
+    // Register callbacks for encoders
+    hueEncoder->setCallback([this](int count) {
+        this->hue = count / 360.0;
+    });
+
+    // Register callbacks for buttons
+    patternButton->setCallback([this]() {
+        (*this->patternIndex)++;
+    });
+}
 
 /**
  * Brightness 0 to 255
  */
-void FireFlyV2Controller::setStatusLED(uint8_t brightness){
+void FireFlyV2Controller::setStatusLED(uint8_t brightness)
+{
     // Brightness is 0 to 255
     static uint8_t initted = 0;
-    if(initted == 0){
+    if (initted == 0)
+    {
         // Set GPIO 2 to PWM function
         gpio_set_function(status_led, GPIO_FUNC_PWM);
     }
@@ -45,38 +57,36 @@ void FireFlyV2Controller::setStatusLED(uint8_t brightness){
     pwm_set_clkdiv(slice_num, 4.0f);
 
     // Set the PWM frequency and duty cycle
-    pwm_set_wrap(slice_num, 255);    // Wrap value for 8-bit resolution
-    pwm_set_chan_level(slice_num, pwm_gpio_to_channel(status_led), brightness);  // 50% duty cycle
+    pwm_set_wrap(slice_num, 255);                                               // Wrap value for 8-bit resolution
+    pwm_set_chan_level(slice_num, pwm_gpio_to_channel(status_led), brightness); // 50% duty cycle
 
     // Enable the PWM output
     pwm_set_enabled(slice_num, true);
-    
 }
 
 void FireFlyV2Controller::initDMA(PIO pio, uint sm)
 {
-
 }
 
 // Used in interrupt
 void FireFlyV2Controller::handleDMA()
 {
-    //Loops through the strips and checks if the channel is done. If it is, it sets the channel_end_times to the current time.
+    // Loops through the strips and checks if the channel is done. If it is, it sets the channel_end_times to the current time.
     uint8_t dma_chan;
-    for(int i = 0; i < NUM_STRIPS; i++){
+    for (int i = 0; i < NUM_STRIPS; i++)
+    {
         dma_chan = strips[i].dma_chan;
-        if(dma_channel_get_irq1_status(dma_chan)){
+        if (dma_channel_get_irq1_status(dma_chan))
+        {
             dma_channel_acknowledge_irq1(dma_chan);
             channel_end_times[i] = get_absolute_time();
         }
-
     }
-
 }
 
 void FireFlyV2Controller::initOutput()
 {
-    
+
     // initDMA();
 
     uint offset = pio_add_program(pio, &ws2812_program);
@@ -101,21 +111,20 @@ void FireFlyV2Controller::initOutput()
 
     // Make an array to flip bits for output
     uint8_t b;
-    for(int i = 0; i < 256; i++){
+    for (int i = 0; i < 256; i++)
+    {
         b = i;
         b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
         b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
         b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
         bitflipLUT[i] = b;
     }
-
 }
 
 void FireFlyV2Controller::initCommunication()
 {
     stdio_init_all();
 
-    
     // Initialize UART1 with baud rate 19200
     uart_init(uart1, 19200);
 
@@ -123,16 +132,18 @@ void FireFlyV2Controller::initCommunication()
     gpio_set_function(4, GPIO_FUNC_UART); // UART1 TX (not used in this example)
     gpio_set_function(5, GPIO_FUNC_UART); // UART1 RX
 
-
-
     printf("Communication established\n");
 
-    if(OVERCLOCK){
+    if (OVERCLOCK)
+    {
         // How to overclock (or underclock!)
-        if (!set_sys_clock_khz(250000, false)){
-          printf("system clock 250MHz failed\n");
-        }else{
-          printf("system clock now 250MHz\n");
+        if (!set_sys_clock_khz(250000, false))
+        {
+            printf("system clock 250MHz failed\n");
+        }
+        else
+        {
+            printf("system clock now 250MHz\n");
         }
     }
 }
@@ -164,7 +175,8 @@ void FireFlyV2Controller::outputLEDs(uint8_t strip_i, uint8_t *leds, uint32_t N)
     // This will be skipped if the strip had already been finished for long enough
     // Therefore the performance will not be affected
     int64_t diff = 0;
-    while((diff = absolute_time_diff_us(channel_end_times[strip_i], get_absolute_time())) < 200){
+    while ((diff = absolute_time_diff_us(channel_end_times[strip_i], get_absolute_time())) < 200)
+    {
         // The condition is checking the difference between the current time and the last time the channel was finished.
     }
 
@@ -176,7 +188,7 @@ void FireFlyV2Controller::outputLEDs(uint8_t strip_i, uint8_t *leds, uint32_t N)
         // Bit reverse for 4000 LEDs = LEDs::output() = 2282 us
         // BitflipLUT for 4000 LEDs = LEDs::output() = 1202 us
         strip->outPointer[i] = bitflipLUT[pixels[i]];
-        //strip->outPointer[i] = ((uint32_t)pixels[i]) << 24; // Old method
+        // strip->outPointer[i] = ((uint32_t)pixels[i]) << 24; // Old method
     }
 
     dma_channel_config c = dma_channel_get_default_config(dma_chan);
@@ -185,10 +197,10 @@ void FireFlyV2Controller::outputLEDs(uint8_t strip_i, uint8_t *leds, uint32_t N)
     channel_config_set_dreq(&c, pio_get_dreq(pio, sm, true));
     channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
     dma_channel_configure(dma_chan, &c,
-                          &pio->txf[sm],            // Destination pointer
-                          strip->outPointer,        // Source pointer
-                          numBytes,                 // Number of transfers
-                          true                      // Start immediately
+                          &pio->txf[sm],     // Destination pointer
+                          strip->outPointer, // Source pointer
+                          numBytes,          // Number of transfers
+                          true               // Start immediately
     );
 
     // while(numBytes--){
@@ -206,25 +218,29 @@ double FireFlyV2Controller::getBrightness()
     char buffer[256];
     int idx = 0;
 
-
     // Read data from UART1
-    while (uart_is_readable(uart1)) {
+    while (uart_is_readable(uart1))
+    {
         setStatusLED(255);
         char ch = uart_getc(uart1);
         // Accumulate into buffer
-        if (ch == '\n' || ch == '\r') {
+        if (ch == '\n' || ch == '\r')
+        {
             buffer[idx] = '\0'; // Null-terminate the string
             printf("Received from ESP32-C3: %s\n", buffer);
             idx = 0; // Reset buffer index
-        } else if (idx < sizeof(buffer) - 1) {
+        }
+        else if (idx < sizeof(buffer) - 1)
+        {
             buffer[idx++] = ch;
-        } else {
+        }
+        else
+        {
             // Buffer overflow, reset index
             idx = 0;
         }
         setStatusLED(1);
     }
-
 
 #ifdef HARDCODE_BRIGHTNESS
     return HARDCODE_BRIGHTNESS;
@@ -246,15 +262,8 @@ double FireFlyV2Controller::getBrightness()
 
 double FireFlyV2Controller::getHue()
 {
-    int count = encoder->getCount();
-    double hue = (count) / 360.0;
     // setStatusLED((uint8_t)(fmod(fabs(hue),1.0)*255)); // Test for Encoder
     return hue;
-}
-
-void FireFlyV2Controller::initHue()
-{
-    encoder = new Encoder(encoder_a, encoder_b);
 }
 
 void FireFlyV2Controller::initBrightness()
@@ -262,15 +271,9 @@ void FireFlyV2Controller::initBrightness()
     this->analogPot = new Potentiometer(pot_gpio, 1);
 }
 
-void FireFlyV2Controller::initPatternButton()
-{
-    this->button = new Button(encoder_button);
-}
-
 void FireFlyV2Controller::givePatternIndex(uint32_t *patternIndex)
 {
     this->patternIndex = patternIndex;
-    Button::givePatternIndex(this->patternIndex);
 }
 
 void FireFlyV2Controller::initMicrophone()

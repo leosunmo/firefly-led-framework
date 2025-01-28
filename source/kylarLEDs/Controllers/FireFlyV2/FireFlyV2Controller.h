@@ -16,9 +16,9 @@ typedef struct {
     uint8_t outPointer[NUM_LEDS*3];
 } strip_t;
 
-class FireFlyV2Controller : public Controller{
+class FireFlyV2Controller : public Controller {
     public:
-        FireFlyV2Controller();
+        FireFlyV2Controller(Encoder *hueEncoder, Button *patternButton);
         //using Controller::Controller;
         void outputLEDs(uint8_t strip, uint8_t *leds, uint32_t N); // leds is an array, N is the length
         uint64_t getCurrentTimeMillis();
@@ -29,9 +29,7 @@ class FireFlyV2Controller : public Controller{
         void givePatternIndex(uint32_t *patternIndex);
     protected:
         void initCommunication();
-        void initHue(); // Change hue via encoder
         void initBrightness(); // Change the brightness via potentiometer
-        void initPatternButton(); // Change the patternIndex via button press
         void initOutput();
         void initMicrophone();
     private:
@@ -59,9 +57,11 @@ class FireFlyV2Controller : public Controller{
         uint8_t encoder_b = 24;
         uint8_t encoder_button = 25;
         
+        // Inputs:
+        Encoder *hueEncoder;
+        Encoder *brightnessEncoder;
         Potentiometer *analogPot;
-        Encoder *encoder;
         Timing *timing;
-        Button *button;
+        Button *patternButton;
         Microphone *microphone;
 };

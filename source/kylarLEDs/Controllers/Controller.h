@@ -15,9 +15,7 @@ class Controller {
         double hue = 0;
         double brightness = 0.5;
         virtual void initCommunication() = 0;
-        virtual void initHue() = 0; // Change hue via encoder
         virtual void initBrightness() = 0; // Change the brightness via potentiometer
-        virtual void initPatternButton() = 0; // Change the patternIndex via button press
         // virtual void savePatternHue(); // Save pattern hue via file 
         // virtual double loadPatternHue(); // Load pattern hue via file 
         // virtual void savePatternIndex(); // Save pattern index via file

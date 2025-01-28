@@ -1,12 +1,18 @@
 #pragma once
 #include "stdint.h"
 #include "pico/stdlib.h"
-class Button{
-    public:
-        Button(int pin);
-        static void givePatternIndex(uint32_t *patternIndex);
-    private:
-        static uint8_t pin;
-        static void interrupt(uint gpio, uint32_t event);
-        static uint32_t *patternIndex;
+#include <functional>
+#include <vector>
+#include "../GPIOInterruptHandler.h"
+
+class Button
+{
+public:
+    Button(int pin);
+    void setCallback(std::function<void()> callback);
+
+private:
+    void handleInterrupt();
+    uint8_t pin; // GPIO pin
+    static std::vector<std::function<void()>> callbacks;
 };
