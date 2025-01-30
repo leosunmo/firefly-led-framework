@@ -29,11 +29,14 @@ FireFlyV2Controller::FireFlyV2Controller(Encoder *hueEncoder, Button *patternBut
 
     // Register callbacks for encoders
     hueEncoder->setCallback([this](int count) {
+        printf("Hue encoder count: %d\n", count);
         this->hue = count / 360.0;
+        printf("Hue: %f\n", this->hue);
     });
 
     // Register callbacks for buttons
     patternButton->setCallback([this]() {
+        printf("Pattern button pressed\n");
         (*this->patternIndex)++;
     });
 }
@@ -123,8 +126,6 @@ void FireFlyV2Controller::initOutput()
 
 void FireFlyV2Controller::initCommunication()
 {
-    stdio_init_all();
-
     // Initialize UART1 with baud rate 19200
     uart_init(uart1, 19200);
 

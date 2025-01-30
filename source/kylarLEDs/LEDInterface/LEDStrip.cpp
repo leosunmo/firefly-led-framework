@@ -7,11 +7,11 @@ LEDStrip::LEDStrip(uint8_t strip){
     this->strip = strip;
     for(int i = 0; i < MAX_NUM_LEDS; i++){
         changesArray[i] = new LEDChange();
-        printf("size of ledchange = %d\n", sizeof(LEDChange));
+        // printf("size of ledchange = %d\n", sizeof(LEDChange));
         ledsArray[i*3] = 0;
         ledsArray[i*3+1] = 0;
         ledsArray[i*3+2] = 0;
-        printf("size of ledsarray = %d\n", sizeof(ledsArray));
+        // printf("size of ledsarray = %d\n", sizeof(ledsArray));
     }
     
 }

@@ -54,8 +54,13 @@
 /**
  * Encoder Pins
  */
-#define ENCODER_HUE_A 23
-#define ENCODER_HUE_B 24
+// Hue Encoder
+#define ENCODER_HUE_A 3
+#define ENCODER_HUE_B 6
+
+// Effect Encoder
+#define ENCODER_EFFECT_A 24
+#define ENCODER_EFFECT_B 23
 
 ////////////////////////////////////////////////////////////
 /////////                BUTTONS                ////////////
@@ -63,7 +68,8 @@
 /**
  * Button Pins
  */
-#define ENCODER_PATTERN_BUTTON 25
+#define ENCODER_PATTERN_BUTTON 17
+#define ENCODER_EFFECT_BUTTON 15
 
 
 ////////////////////////////////////////////////////////////
@@ -103,7 +109,7 @@
 ////////////////////////////////////////////////////////////
 /////////                DEBUG                   ////////////
 ////////////////////////////////////////////////////////////
-#define DEBUG_DELAY_MAIN 0 // Used to give time to start Serial Monitoring
+#define DEBUG_DELAY_MAIN 1 // Used to give time to start Serial Monitoring
 #define DEBUG_PRINT_MAIN 0
 #define DEBUG_PRINT_MIC 0
 #define DEBUG_PRINT_MIC_TIMING 0
