@@ -3,6 +3,8 @@
 #include <math.h>
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
 
+int Bounce::maxAllowedThickness = 10; // Define static member with an initial value
+
 void Bounce::init()
 {
     printf("Initialized Bounce with config: SolidBar=%s, SplitBar=%s, HighLowInput=%s, MaxThickness=%d\n",
@@ -21,6 +23,31 @@ void Bounce::init()
         Effect::engine->apply(eff);
         pixels->push_back(eff);
     }
+
+    // Register encoder callback
+    Bounce::effectEncoder->setCallback([this](int count)
+                                       {
+                                        printf("Encoder count: %d\n", count);
+        if (count > 0)
+        {
+            if (config.maxThickness < Bounce::maxAllowedThickness)
+            {
+                config.maxThickness++;
+            }
+        }
+        else
+        {
+            if (config.maxThickness > 0)
+            {
+                config.maxThickness--;
+            }
+        } 
+
+            printf("Max Thickness: %d\n", config.maxThickness); });
+
+    // Register button callback
+    Bounce::effectButton->setCallback([this]()
+                                      { GPIOInterruptHandler::printCallbacks(); });
 
     secTimer = new Timing();
     avgTimer = new Timing();
@@ -178,6 +205,9 @@ void Bounce::run()
 
 void Bounce::release()
 {
+    effectEncoder->clearCallbacks();
+    effectButton->clearCallbacks();
+
     delete (secTimer);
     delete (avgTimer);
     delete (valTimer);
