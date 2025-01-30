@@ -50,12 +50,9 @@ class FireFlyV2Controller : public Controller {
         //dma_channel_config *c;
 
         //PINS:
-
         uint8_t pot_gpio = 27;
         uint8_t boot_button = 22;
-        uint8_t encoder_a = 23;
-        uint8_t encoder_b = 24;
-        uint8_t encoder_button = 25;
+
         
         // Inputs:
         Encoder *hueEncoder;
