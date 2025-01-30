@@ -4,9 +4,7 @@
 #include "pico/time.h"
 #include "stdio.h"
 
-std::vector<std::function<void()>> Button::callbacks;
-
-Button::Button(int pin) : pin(pin)
+Button::Button(int pin) : pin(pin), last_time(get_absolute_time())
 {
     gpio_init(pin);
     gpio_set_dir(pin, GPIO_IN);
@@ -20,9 +18,13 @@ void Button::setCallback(std::function<void()> callback)
     Button::callbacks.push_back(callback);
 }
 
+void Button::clearCallbacks()
+{
+    Button::callbacks.clear();
+}
+
 void Button::handleInterrupt()
 {
-    static absolute_time_t last_time = {0};
     static int press_state = 0; // 0 Waiting for press, 1 waiting for release
     absolute_time_t new_time = get_absolute_time();
     // Debounce
@@ -32,7 +34,7 @@ void Button::handleInterrupt()
         return;
     }
 
-    last_time = new_time;
+    Button::last_time = new_time;
 
     if (press_state == 0)
     {
