@@ -111,6 +111,8 @@
 ////////////////////////////////////////////////////////////
 #define DEBUG_DELAY_MAIN 1 // Used to give time to start Serial Monitoring
 #define DEBUG_PRINT_MAIN 0
+#define DEBUG_SOUND_PROFILE 0
+#define DEBUG_SOUND_PROFILE_BOTH 1
 #define DEBUG_PRINT_MIC 0
 #define DEBUG_PRINT_MIC_TIMING 0
 #define DEBUG_PRINT_FLASH 0
