@@ -424,13 +424,14 @@ void core1_entry(){
 void updateSoundProfileLow() {
     //Only doing LOWS for now...
     //Update min
-    double coef = 10.0;
+    double coef = 20.0;
 
     if(freq_data.low_freq_energy < sound_profile.low_min){
         //The frequency is lower!
         sound_profile.low_min = freq_data.low_freq_energy;//(sound_profile.low_min*coef + freq_data.low_freq_energy)/(coef+1);
     }else{
         sound_profile.low_min = (sound_profile.low_min*1000.0 + freq_data.low_freq_energy)/(1001.0);
+
     }
 
     //Update max
@@ -456,12 +457,15 @@ void updateSoundProfileLow() {
     // printf("\n");
 
     // Calculated normal's min
-    coef = 10.0;
+    // coef = 10.0;
+    coef = 20.0;
     if(sound_profile.low_normal < sound_profile.low_normal_min){
         //The frequency is lower!
         sound_profile.low_normal_min = sound_profile.low_normal;//(sound_profile.low_min*coef + freq_data.low_freq_energy)/(coef+1);
     }else{
         sound_profile.low_normal_min = (sound_profile.low_normal_min*400.0 + sound_profile.low_normal)/(401.0);
+
+        
     }
 
     //Calculate normal's max
@@ -470,6 +474,7 @@ void updateSoundProfileLow() {
         sound_profile.low_normal_max = sound_profile.low_normal;//(sound_profile.low_max*coef + freq_data.low_freq_energy)/(coef+1);
     }else{
         sound_profile.low_normal_max *= 0.999;
+
     }
     if(sound_profile.low_normal_max > 9999999){
          sound_profile.low_normal_max = sound_profile.low_normal;
@@ -481,22 +486,78 @@ void updateSoundProfileLow() {
         sound_profile.low_normal_normal = 0;
     }
 
-    //Print it
+    #if DEBUG_SOUND_PROFILE
+    printf("%1.3f:\t%4.2f\t<-\t%4.2f\t->\t%4.2f\t", sound_profile.low_normal_normal, sound_profile.low_normal_min, sound_profile.low_normal, sound_profile.low_normal_max);
+    printf("|");
+    
+    // Graph for low_normal_min
+    printf("\t");
+    int count = 50;
+    int graph_length = sound_profile.low_normal_min / 0.02;
+    if (graph_length > 50) graph_length = 50;
+    for(int i = 0; i < graph_length; i++){
+        printf("*");
+        count--;
+    }
+    for(int i = 0; i < count; i++){
+        printf(" ");
+    }
+    printf("|");
 
-    // printf("%1.3f:\t%4.2f\t<-\t%4.2f\t->\t%4.2f\t", sound_profile.low_normal_normal, sound_profile.low_normal_min, sound_profile.low_normal, sound_profile.low_normal_max);
-    // printf("|");
-    // int count = 10;
-    // for(int i = 0; i < sound_profile.low_normal_normal/0.1; i++){
-    //     printf("+");
-    //     count--;
-    // }
-    // for(int i = 0; i < count; i++){
-    //     printf(" ");
-    // }
-    // printf("|");
-    // printf("\n");
+    count = 50;
+    graph_length = sound_profile.low_normal_normal / 0.02;
+    if (graph_length > 50) graph_length = 50;
+    for(int i = 0; i < graph_length; i++){
+        printf("+");
+        count--;
+    }
+    for(int i = 0; i < count; i++){
+        printf(" ");
+    }
+    printf("|");
+    // Graph for low_normal_max
+    printf("\t");
+    count = 50;
+    graph_length = sound_profile.low_normal_max / 0.02;
+    if (graph_length > 50) graph_length = 50;
+    for(int i = 0; i < graph_length; i++){
+        printf("#");
+        count--;
+    }
+    for(int i = 0; i < count; i++){
+        printf(" ");
+    }
+    printf("|");
 
-
+    printf("\n");
+    #endif
+    #if DEBUG_SOUND_PROFILE_BOTH
+    // Print low_normal and high_normal side by side
+    printf("%1.3f:\t%4.2f\t<-\t%4.2f\t->\t%4.2f\t", sound_profile.low_normal_normal, sound_profile.low_normal_min, sound_profile.low_normal, sound_profile.low_normal_max);
+    printf("|");
+    int count = 50;
+    for(int i = 0; i < sound_profile.low_normal_normal/0.02; i++){
+        printf("+");
+        count--;
+    }
+    for(int i = 0; i < count; i++){
+        printf(" ");
+    }
+    printf("|");
+    printf("\t");
+    printf("%1.3f:\t%4.2f\t<-\t%4.2f\t->\t%4.2f\t", sound_profile.high_normal_normal, sound_profile.high_normal_min, sound_profile.high_normal, sound_profile.high_normal_max);
+    printf("|");
+    count = 50;
+    for(int i = 0; i < sound_profile.high_normal_normal/0.02; i++){
+        printf("+");
+        count--;
+    }
+    for(int i = 0; i < count; i++){
+        printf(" ");
+    }
+    printf("|");
+    printf("\n");
+    #endif
 }
 
 void updateSoundProfileHigh() {
@@ -603,6 +664,11 @@ void on_pdm_samples_ready()
     // internal sample buffer are ready for reading
 #if HW_PDM_MIC == 1
     new_samples_captured = pdm_microphone_read(capture_buffer_q15, FFT_MAG_SIZE); 
+    // absolute_time_t timestamp = get_absolute_time();
+    // uint64_t timestamp_us = to_us_since_boot(timestamp);
+    // for (int i = 0; i < new_samples_captured; i++) {
+    //     printf("%llu, %d", timestamp_us, capture_buffer_q15[i]);
+    // }
 #endif
 }
 
