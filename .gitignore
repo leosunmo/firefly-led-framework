@@ -32,3 +32,5 @@ generated/
 pico_flash_region.ld
 picotool/
 
+# Debugging files
+pdm_viz/venv/
