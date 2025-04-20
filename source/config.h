@@ -109,7 +109,7 @@
 ////////////////////////////////////////////////////////////
 /////////                DEBUG                   ////////////
 ////////////////////////////////////////////////////////////
-#define DEBUG_DELAY_MAIN 1 // Used to give time to start Serial Monitoring
+#define DEBUG_DELAY_MAIN 0 // Used to give time to start Serial Monitoring
 #define DEBUG_PRINT_MAIN 0
 #define DEBUG_SOUND_PROFILE 0
 #define DEBUG_SOUND_PROFILE_BOTH 1

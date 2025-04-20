@@ -11,9 +11,10 @@ void BounceBall::init(){
     blueprint.Thold = 0;
     blueprint.Tfall = 200;
 
+    blueprint.exp_dropoff = 0.95;
     velTimer = new Timing();
 
-    bounce_end = LEDs::strip(0)->num() - 1;    
+    bounce_end = LEDs::strip(0)->num() - 1;    // 120 - 1 = 119
 }
 
 void BounceBall::run(){
@@ -35,14 +36,14 @@ void BounceBall::run(){
     }
     
     // Handle bounce.
-    if (blueprint.index >= bounce_end){
-        vel = -vel*bounce_factor;
-        blueprint.index += 1;
+    if (pos >= bounce_end) {
+        vel = -vel * bounce_factor;
+        pos -= 1;
 
-        // Handle Removing.
-        if (vel < 0.01) {
-            done = 1;
-        }
+        // Handle removing.
+        // if (abs(vel) < 0.001) {
+        //     done = 1;
+        // }
     }
 }
 
