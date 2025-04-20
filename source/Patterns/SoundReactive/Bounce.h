@@ -4,6 +4,7 @@
 #include "../../kylarLEDs/Controllers/Sensors/Encoder/Encoder.h"
 #include "../../kylarLEDs/Controllers/Sensors/Button/Button.h"
 #include "../../Effects/SoundReactive/SoundPixel.h"
+#include "../../Effects/SoundReactive/BounceBall.h"
 #include <vector>
 
 struct BounceConfig
