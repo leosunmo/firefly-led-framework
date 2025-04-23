@@ -23,6 +23,8 @@ void BounceBall::run(){
 
     pos = pos + vel * seconds_passed;
     vel += gravity * seconds_passed;
+    // Ensure velocity is always treated as positive for calculations
+    float abs_vel = std::abs(vel);
 
     // Light up the LED where we are.
     SingleTime * new_light;
@@ -31,35 +33,46 @@ void BounceBall::run(){
         blueprint.hue += hue_shift;
         new_light = new SingleTime();
 
-        blueprint.Tfall = std::max(200.0f, 5000.0f / (std::abs(vel) + 10.0f));
+        // Update Tfall calculation to use absolute velocity
+        blueprint.Tfall = std::max(200.0f, 5000.0f / (abs_vel + 10.0f));
 
         new_light->init(blueprint);
         Effect::engine->queueApply(new_light);
     }
     
-    // Handle bounce.
-    if (pos >= bounce_end) {
-        vel = -vel * bounce_factor;
-        pos -= 1;
+    // Handle bounce logic with absolute velocity
+    if ((direction == 1 && pos >= bounce_end) || (direction == 0 && pos <= bounce_end)) {
+        vel = -vel * bounce_factor; // Reverse velocity direction
+        pos = bounce_end; // Ensure the position stays within bounds
 
         // Handle Removing.
-        if (abs(vel) < 0.01) {
+        if (abs_vel < 0.01) {
             done = 1;
         }
     }
 }
 
 void BounceBall::reset(int position, int direction, float brightness, float hue, float hue_shift, float speed){
-    /*
-     * The spark is a reusable object.
-     * Get it ready for next time.
-     */
+    if (direction == 1) {
+        // Ball heading right, from 0 to num_leds
+        bounce_end = static_cast<int>(LEDs::strip(0)->num())-1;
+        this->vel = std::abs(speed); // Ensure velocity is positive for direction 1
+        pos = position;
+        printf("direction 1: vel: %f\t pos %d\t bounce_end: %d \n", vel, pos, bounce_end);
+        printf("Leds: %d\n", static_cast<int>(LEDs::strip(0)->num()));
+    } else {
+        // Ball heading left from num_leds to 0
+        this->vel = -std::abs(speed); // Ensure velocity is negative for direction 0
+        gravity = -std::abs(gravity); // Ensure gravity is negative for direction 0
+        bounce_end = 0;
+        pos = position;
+        printf("direction 0: vel: %f\t pos %d\t bounce_end: %d \n", vel,pos,bounce_end);
+    }
     blueprint.index = position;
     this->direction = direction;
     blueprint.brightness = brightness;
     blueprint.hue = hue;
     this->hue_shift = hue_shift;
-    this->vel = speed;
     blueprint.saturation = 1;
     blueprint.Tfall = 1200;
 }
