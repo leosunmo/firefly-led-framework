@@ -19,7 +19,6 @@ class BounceBall : public Effect{
         uint16_t bounce_end = 0;
         float hue_shift;
         single_time_t blueprint;
-        float gravity = 5.0; // Leds / s / s
+        float gravity = 10; // Leds / s / s
         Timing * velTimer;
-
 };

@@ -13,8 +13,7 @@ void BounceBall::init(){
 
     blueprint.exp_dropoff = 0.95;
     velTimer = new Timing();
-
-    bounce_end = LEDs::strip(0)->num() - 1;    // 120 - 1 = 119
+    bounce_end = LEDs::strip(0)->num() - 1;
 }
 
 void BounceBall::run(){
@@ -31,6 +30,9 @@ void BounceBall::run(){
         blueprint.index = pos;
         blueprint.hue += hue_shift;
         new_light = new SingleTime();
+
+        blueprint.Tfall = std::max(200.0f, 5000.0f / (std::abs(vel) + 10.0f));
+
         new_light->init(blueprint);
         Effect::engine->queueApply(new_light);
     }
@@ -40,10 +42,10 @@ void BounceBall::run(){
         vel = -vel * bounce_factor;
         pos -= 1;
 
-        // Handle removing.
-        // if (abs(vel) < 0.001) {
-        //     done = 1;
-        // }
+        // Handle Removing.
+        if (abs(vel) < 0.01) {
+            done = 1;
+        }
     }
 }
 
@@ -65,5 +67,4 @@ void BounceBall::reset(int position, int direction, float brightness, float hue,
 
 BounceBall::~BounceBall(){
     delete(velTimer);
-    
 }
