@@ -13,6 +13,7 @@
 #include "Patterns/SoundReactive/Shakeel.h"
 #include "Patterns/SoundReactive/Bounce.h"
 #include "Patterns/SoundReactive/ShakeelFlash.h"
+#include "Patterns/SoundReactive/ShakeelFlashBall.h"
 #include "Patterns/SoundReactive/SpaceX.h"
 #include "Patterns/SoundReactive/FireV0.h"
 #include "Patterns/SoundReactive/HeartPattern.h"
@@ -82,8 +83,9 @@ int main(){
 
     // Add patterns to the vector
     patterns->push_back(new Bounce(config1, effectEncoder, effectButton));
-    patterns->push_back(new Bounce(config2, effectEncoder, effectButton));
-    patterns->push_back(new Bounce(config3, effectEncoder, effectButton));
+    patterns->push_back(new ShakeelFlashBall());
+    // patterns->push_back(new Bounce(config2, effectEncoder, effectButton));
+    // patterns->push_back(new Bounce(config3, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(true));
     // patterns->push_back(new Shakeel());
     // patterns->push_back(new FireV0(false));
