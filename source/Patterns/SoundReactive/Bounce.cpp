@@ -51,7 +51,10 @@ void Bounce::run()
     {
         double lowVal = pow(Microphone::getLowNormal(), 2);
         double highVal = pow(Microphone::getHighNormal(), 2);
-        micVal = (lowVal < 0.1) ? (0.5 * lowVal + 0.5 * highVal) : lowVal;
+        double lowEnergy = pow(Microphone::getLowEnergy(), 2);
+        double highEnergy = pow(Microphone::getHighEnergy(), 2);
+        micVal = lowVal;
+        // micVal = (lowVal < 0.1) ? (0.5 * lowVal + 0.5 * highVal) : lowVal;
     }
     else
     {
@@ -85,13 +88,16 @@ void Bounce::run()
     int halfStripLen = stripLen / 2;
 
     static bool ball_ready = true;
-    if (micVal > 0.5)
+    if (micVal > 0.3)
     {
         if (ball_ready) {
             // Make new BOunce Ball
             BounceBall * ball = new BounceBall();
             ball->init();
-            ball->reset(0, 1, 1, (rand()%100)/100.0, 0.01, (rand()%100)/33.0);
+
+            // Set speed based on micVal
+            double speed = 80.0 * micVal / 0.8; // Scale micVal so that 0.8 corresponds to a speed of 50
+            ball->reset(0, 1, 1, (rand()%100)/100.0, 0.01, speed);
             Effect::engine->queueApply(ball);
         }
         ball_ready = false;
@@ -189,5 +195,5 @@ void Bounce::release()
     delete (secTimer);
     delete (avgTimer);
     delete (valTimer);
-    delete pixels;
+    // delete pixels;
 }

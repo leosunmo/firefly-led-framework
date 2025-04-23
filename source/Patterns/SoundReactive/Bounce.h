@@ -31,7 +31,6 @@ public:
     Button *effectButton;
 
 private:
-    Timing *myTiming;
     Timing *avgTimer;
     Timing *secTimer;
     Timing *valTimer;
