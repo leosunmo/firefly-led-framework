@@ -83,7 +83,7 @@ int main(){
 
     // Add patterns to the vector
     patterns->push_back(new Bounce(config1, effectEncoder, effectButton));
-    patterns->push_back(new ShakeelFlashBall());
+    patterns->push_back(new ShakeelFlashBall(effectEncoder, effectButton));
     // patterns->push_back(new Bounce(config2, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(config3, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(true));
