@@ -3,7 +3,7 @@
 #include "../../kylarLEDs/Utility/Timing.h"
 #include "../../kylarLEDs/Controllers/Sensors/Encoder/Encoder.h"
 #include "../../kylarLEDs/Controllers/Sensors/Button/Button.h"
-#include "../../Effects/SoundReactive/SoundPixel.h"
+#include "../../Effects/SoundReactive/FullBar.h"
 #include "../../Effects/SoundReactive/BounceBall.h"
 #include <vector>
 class ShakeelFlashBall : public Pattern{
@@ -27,9 +27,8 @@ class ShakeelFlashBall : public Pattern{
         // when the button is pressed
         bool punch = false;
 
-        Timing *avgTimer;
-        Timing *secTimer;
-        Timing *valTimer;
+        double baseBrightness = 0.9; // Adjust this value to set the minimum brightness level
+
+        FullBar * bar;
         Timing *punchTimer;
-        std::vector<SoundPixel*> *pixels;
 };

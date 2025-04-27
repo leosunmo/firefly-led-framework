@@ -43,5 +43,5 @@ void ShakeelFlash::release()
 {
     effectEncoder->clearCallbacks();
     effectButton->clearCallbacks();
-    delete bar;
+    delete(bar);
 }
