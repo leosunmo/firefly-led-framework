@@ -54,6 +54,16 @@ Now you just need to copy the file. Mount point might differ depending on your s
 cp build/firefly.uf2 /media/$USER/RPI-RP2
 ```
 
+### Mounting the Pico
+If for some reason the Pico doesn't mount automatically, you can try to mount it manually. The mount point might differ depending on your system.
+```
+udisksctl mount -b /dev/sda1
+```
+Or install `udiskie`.
+```
+sudo apt install udiskie
+```
+
 ## Connecting to the Pico
 ### Linux:
     1. Plug in the Pico
