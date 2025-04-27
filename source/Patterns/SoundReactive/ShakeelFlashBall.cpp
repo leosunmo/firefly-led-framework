@@ -158,6 +158,8 @@ void ShakeelFlashBall::run(){
 }
 
 void ShakeelFlashBall::release(){
+    effectEncoder->clearCallbacks();
+    effectButton->clearCallbacks();
     delete(secTimer);
     delete(avgTimer);
     delete(pixels);
