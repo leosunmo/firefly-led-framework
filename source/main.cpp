@@ -84,6 +84,7 @@ int main(){
     // Add patterns to the vector
     patterns->push_back(new Bounce(config1, effectEncoder, effectButton));
     patterns->push_back(new ShakeelFlashBall(effectEncoder, effectButton));
+    patterns->push_back(new ShakeelFlash(effectEncoder, effectButton));
     // patterns->push_back(new Bounce(config2, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(config3, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(true));
@@ -94,7 +95,6 @@ int main(){
     // patterns->push_back(new SpaceX());
     // patterns->push_back(new HeartPattern());
     // patterns->push_back(new CirclesPattern());
-    patterns->push_back(new ShakeelFlash());
 
 
     //Initialize main loop variables
