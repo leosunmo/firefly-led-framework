@@ -14,6 +14,10 @@ class FullBar : public Effect{
 
         float micVal = 0;
         float hueAdd = 0;
+        // Adjust this value to set the baseline brightness level.
+        // Maximum should probably be around 0.95.
+        // Minimum should be around 0.05.
+        double baseBrightness = 0.9;
         float brightness = 0;
     private:
         Timing *hueTimer;

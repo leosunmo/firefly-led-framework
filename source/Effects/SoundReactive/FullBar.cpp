@@ -37,9 +37,11 @@ void FullBar::run()
         hueAdd = micAdd;
     }
 
-    // Set proposed brightness based on mic value
-    // The brightness is set to a minimum of 0.1 and a maximum of 0.9.
-    double proposedBrightness = 0.1 + (0.9 * micVal);
+    // Scale the temporary brightness increase relative to baseBrightness
+    double tempBrightnessIncrease = micVal * (1.0 - baseBrightness) * baseBrightness;
+
+    // Set proposed brightness as the sum of baseBrightness and the scaled temporary increase
+    double proposedBrightness = baseBrightness + tempBrightnessIncrease;
 
     avgLoops = brightnessTimer->takeMsEvery(1);
     // Iterate through the number of ms since last to smooth out the brightness.
