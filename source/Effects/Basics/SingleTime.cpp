@@ -24,7 +24,6 @@ SingleTime* SingleTime::init(single_time_t blueprint){
     profile.Tfall = blueprint.Tfall;
     profile.exp_dropoff = blueprint.exp_dropoff;
     initialized = 1;
-    ID = profile.index;
     return this;
 }
 

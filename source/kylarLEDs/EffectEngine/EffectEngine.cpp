@@ -16,12 +16,32 @@ void EffectEngine::clear() {
     effectsQueue.clear();
 }
 
+void EffectEngine::clearPattern(uint8_t pattern_id) {
+    for (Effect* eff : effects) {
+        if (eff->ID == pattern_id) {
+            delete(eff);
+        }
+    }
+    for (Effect* eff : effectsQueue){
+        if (eff->ID == pattern_id) {
+            delete(eff);
+        }
+    }
+    effects.clear();
+    effectsQueue.clear();
+}
+
+void EffectEngine::setActivePattern(uint8_t patternIndex) {
+    activePattern = patternIndex;
+}
+
 void EffectEngine::apply(Effect *effect) {
-	effects.push_back(effect);
-    //printf("effect vector size= %d\n", sizeof(Effect *)*effects.size());
+    effect->ID = activePattern;
+    effects.push_back(effect);
 }
 
 void EffectEngine::queueApply(Effect *effect) {
+    effect->ID = activePattern;
     effectsQueue.push_back(effect);
 }
 
