@@ -13,6 +13,7 @@ class SoundPixel : public Effect{
         float hue = 0;
         float micVal = 0;
         float hueAdd = 0;
+        float saturation = 1;
         float brightness = 0;
     private:
         
