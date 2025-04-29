@@ -21,7 +21,7 @@ class Effect {
         static void giveEngine(EffectEngine * effectEngine);
         static EffectEngine *engine;
         bool isDone();
-        int ID = -1;
+        uint32_t ID = 0;
     protected:
         bool initialized = 0;
         bool done = 0;

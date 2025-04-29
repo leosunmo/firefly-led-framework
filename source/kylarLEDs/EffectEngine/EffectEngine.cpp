@@ -16,22 +16,29 @@ void EffectEngine::clear() {
     effectsQueue.clear();
 }
 
-void EffectEngine::clearPattern(uint8_t pattern_id) {
-    for (Effect* eff : effects) {
-        if (eff->ID == pattern_id) {
-            delete(eff);
+void EffectEngine::clearPattern(uint32_t pattern_id) {
+    std::vector<Effect *>::iterator it = effects.begin();
+    while (it != effects.end()) {
+        if ((*it)->ID == pattern_id) {
+            delete *it;
+            it = effects.erase(it);
+        } else {
+            ++it;
         }
     }
-    for (Effect* eff : effectsQueue){
-        if (eff->ID == pattern_id) {
-            delete(eff);
+
+    it = effectsQueue.begin();
+    while (it != effectsQueue.end()) {
+        if ((*it)->ID == pattern_id) {
+            delete *it;
+            it = effectsQueue.erase(it);
+        } else {
+            ++it;
         }
     }
-    effects.clear();
-    effectsQueue.clear();
 }
 
-void EffectEngine::setActivePattern(uint8_t patternIndex) {
+void EffectEngine::setActivePattern(uint32_t patternIndex) {
     activePattern = patternIndex;
 }
 
@@ -52,18 +59,16 @@ void EffectEngine::run() {
     while (it != effects.end())
     {
         Effect* effect = *it;
+        printf("EffectEngine::run() - Processing Effect with ID: %d\n", effect->ID);
         if (effect->isDone()) {
-            // erase() invalidates the iterator, use returned iterator
+            printf("EffectEngine::run() - Deleting Effect with ID: %d\n", effect->ID);
             delete effect;
-            //delete(effect);
             it = effects.erase(it);
             continue;
         } else {
             effect->run();
             it++;
         }
-        
-        
     }
     for (Effect* eff : effectsQueue) {
         effects.push_back(eff);

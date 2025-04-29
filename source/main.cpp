@@ -139,6 +139,7 @@ int main()
         }
         if (currentPatternIndex == nextPatternIndex)
         {
+            effectEngine->setActivePattern(currentPatternIndex);
             // We are remaining on the same pattern
             timer->start("mainloop");
             currentPattern->run(); // Allow pattern to create effects
@@ -183,12 +184,12 @@ int main()
                 LEDs::output();
             }
 
-            // We are changing pattern
             currentPattern->release();                       // Finish the current pattern
             effectEngine->clearPattern(currentPatternIndex); // Clear the effects
             LEDs::clear();                                   // Clear the LEDs
             LEDs::output();                                  // Output the off LEDs
             LEDs::useGlobalBrightnessControl(false, NULL);   // Clear any global brightness control
+            global_brightness = 1.0;                         // Reset global brightness to 1.0
             currentPattern = nextPattern;                    // Set the current pattern to be the next
             currentPatternIndex = nextPatternIndex;          // Set current pattern index to the new one
             effectEngine->setActivePattern(currentPatternIndex);

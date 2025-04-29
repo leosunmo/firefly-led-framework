@@ -24,15 +24,14 @@ SingleTime* SingleTime::init(single_time_t blueprint){
     profile.Tfall = blueprint.Tfall;
     profile.exp_dropoff = blueprint.exp_dropoff;
     initialized = 1;
+    timer = new Timing();
+    done = 0;
     return this;
 }
 
 void SingleTime::run(){
     if(initialized == 0){
         init();
-    }
-    if(timer == NULL){
-        timer = new Timing();
     }
     uint32_t time = timer->timerMs();
 
@@ -63,5 +62,8 @@ void SingleTime::run(){
 }
 
 SingleTime::~SingleTime(){
-    delete(timer);
+    if(timer != nullptr) {
+        delete timer;
+        timer = nullptr;
+    }
 }

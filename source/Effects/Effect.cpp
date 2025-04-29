@@ -7,7 +7,7 @@ Effect::Effect(){
 }
 
 Effect::~Effect(){
-    
+    printf("Effect::~Effect() - Deleting Effect with ID: %d\n", ID);
 }
 
 bool Effect::isDone(){
