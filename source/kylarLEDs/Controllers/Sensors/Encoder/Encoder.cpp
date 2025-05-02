@@ -58,6 +58,7 @@ void Encoder::handleInterrupt()
     // Determine the current direction
     int current_direction = gpio_get(Encoder::pinB) ? 1 : -1;
 
+    printf("Encoder direction: %d, velocity: %f, add: %d\n", current_direction, velocity, add);
     // Reset velocity if direction changes
     if (current_direction != last_direction && last_direction != 0)
     {
@@ -69,13 +70,13 @@ void Encoder::handleInterrupt()
 
     if (Encoder::accumulate)
     {
-        // If we are     // Update count based on direction
+        // If we are accumilating update count based on direction
     Encoder::count += add * current_direction;
     }
     else
     {
-        // If we are accumulating, add or subtract the count
-        Encoder::count += (current_direction ? 1 : -1);
+        // If we are not accumulating, add or subtract the count
+        Encoder::count = current_direction;
     }
 
     for (const auto &callback : Encoder::callbacks)
