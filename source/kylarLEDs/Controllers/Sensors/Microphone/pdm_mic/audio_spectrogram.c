@@ -674,6 +674,7 @@ void on_pdm_samples_ready()
 
 void start_mic(mic_type mic){
     //multicore_fifo_push_blocking(mic);
+    multicore_reset_core1();
     multicore_launch_core1(core1_entry);
 }
 
