@@ -16,14 +16,11 @@ public:
     void clearCallbacks();
 
 private:
-    void handleRiseAInterrupt();
-    void handleFallAInterrupt();
+    // void handleRiseAInterrupt();
+    // void handleFallAInterrupt();
+    void handleInterrupt();
     uint8_t pinA;
     uint8_t pinB;
-    int lock;
-    uint64_t locktime0;
-    absolute_time_t locktime;
-    int lastB;
     bool accumulate = false; // if true, accumulate the count
     int count;
     std::vector<std::function<void(int)>> callbacks;
