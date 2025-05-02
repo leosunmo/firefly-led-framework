@@ -26,18 +26,22 @@ void BounceBall::run(){
     // Ensure velocity is always treated as positive for calculations
     float abs_vel = std::abs(vel);
 
-    // Light up the LED where we are.
-    SingleTime * new_light;
+    // Light up the LEDs between the previous position and the current position.
     if ((uint16_t)pos != prev_pos) {
-        blueprint.index = pos;
-        blueprint.hue += hue_shift;
-        new_light = new SingleTime();
+        int start = std::min(prev_pos, (uint16_t)pos);
+        int end = std::max(prev_pos, (uint16_t)pos);
 
-        // Update Tfall calculation to use absolute velocity
-        blueprint.Tfall = std::max(200.0f, 5000.0f / (abs_vel + 10.0f));
+        for (int i = start; i <= end; ++i) {
+            blueprint.index = i;
+            blueprint.hue += hue_shift;
+            SingleTime *new_light = new SingleTime();
 
-        new_light->init(blueprint);
-        Effect::engine->queueApply(new_light);
+            // Update Tfall calculation to use absolute velocity
+            blueprint.Tfall = std::max(200.0f, 5000.0f / (abs_vel + 10.0f));
+
+            new_light->init(blueprint);
+            Effect::engine->queueApply(new_light);
+        }
     }
     
     // Handle bounce logic with absolute velocity
