@@ -1,0 +1,38 @@
+{
+  "esp32": {
+    "build": {
+      "compileArgs": [
+        "-S",
+        "${workspaceFolder}/esp32firefly",
+        "-B",
+        "${workspaceFolder}/esp32firefly/build",
+        "-G",
+        "Ninja",
+        "-DPYTHON_DEPS_CHECKED=1",
+        "DESP_PLATFORM=1"
+      ],
+      "ninjaArgs": [
+        "-C",
+        "${workspaceFolder}/esp32firefly/build"
+      ],
+      "buildDirectoryPath": "${workspaceFolder}/esp32firefly/build",
+      "sdkconfigDefaults": [],
+      "sdkconfigFilePath": "${workspaceFolder}/esp32firefly/sdkconfig"
+    },
+    "env": {},
+    "flashBaudRate": "",
+    "idfTarget": "",
+    "monitorBaudRate": "",
+    "openOCD": {
+      "debugLevel": 0,
+      "configs": [],
+      "args": []
+    },
+    "tasks": {
+      "preBuild": "",
+      "preFlash": "",
+      "postBuild": "",
+      "postFlash": ""
+    }
+  }
+}

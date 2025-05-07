@@ -1,7 +1,6 @@
 build/*
 !build/firefly.uf2
 !build/build.py
-.vscode
 !.vscode/launch.json
 utils/picotool/build/*
 *.DS_Store

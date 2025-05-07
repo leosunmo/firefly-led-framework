@@ -1,0 +1,35 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder}/**"
+      ],
+      "defines": [],
+      "compilerPath": "${config:idf.toolsPath}/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
+      "cStandard": "c17",
+      "cppStandard": "gnu++17",
+      "intelliSenseMode": "linux-gcc-x64",
+      "configurationProvider": "ms-vscode.makefile-tools"
+    },
+    {
+      "name": "ESP-IDF",
+      "compilerPath": "${config:idf.toolsPath}/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/bin/riscv32-esp-elf-gcc",
+      "compileCommands": "${config:idf.buildPath}/esp32firefly/compile_commands.json",
+      "includePath": [
+        "${config:idf.espIdfPath}/components/**",
+        "${config:idf.espIdfPathWin}/components/**",
+        "${workspaceFolder}/esp32firefly/**"
+      ],
+      "browse": {
+        "path": [
+          "${config:idf.espIdfPath}/components",
+          "${config:idf.espIdfPathWin}/components",
+          "${workspaceFolder}/esp32firefly"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
+    }
+  ],
+  "version": 4
+}
