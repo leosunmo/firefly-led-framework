@@ -128,6 +128,13 @@ int main(){
             printf("Total allocated space (bytes):  %d\n", mi.uordblks); // max is about 238516 bytes ( unless there is ghost memory )~
             printf("Total free space (bytes):       %d\n", mi.fordblks); // Free space left (in the current block?)
         }
+        if(DEBUG_PRINT_MEMORY){
+            // Print memory usage
+            struct mallinfo mi = mallinfo();
+            printf("Total allocated space (bytes):  %d\n", mi.uordblks); // max is about 238516 bytes ( unless there is ghost memory )~
+            printf("total space allocated from system (bytes):       %d\n", mi.arena); // Free space left (in the current block?)
+
+        }
         if(currentPatternIndex == nextPatternIndex){
             //We are remaining on the same pattern
             timer->start("mainloop");

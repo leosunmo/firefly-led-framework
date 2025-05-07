@@ -50,7 +50,12 @@ void BounceBall::run(){
         pos = bounce_end; // Ensure the position stays within bounds
 
         // Handle Removing.
-        if (abs_vel < 0.01) {
+        // If the ball is moving slowly enough, we can remove it.
+        // If it's not bouncing it might just be out of bounds, remove it.
+        if (bounce_factor < 0.01 && (pos >= bounce_end || pos <= 0)) {
+            done = 1;
+        } else if (abs_vel < 0.01) {
+            // If the ball is moving slowly enough, we can remove it.
             done = 1;
         }
     }
@@ -62,15 +67,12 @@ void BounceBall::reset(int position, int direction, float brightness, float hue,
         bounce_end = static_cast<int>(LEDs::strip(0)->num())-1;
         this->vel = std::abs(speed); // Ensure velocity is positive for direction 1
         pos = position;
-        printf("direction 1: vel: %f\t pos %d\t bounce_end: %d \n", vel, pos, bounce_end);
-        printf("Leds: %d\n", static_cast<int>(LEDs::strip(0)->num()));
     } else {
         // Ball heading left from num_leds to 0
         this->vel = -std::abs(speed); // Ensure velocity is negative for direction 0
         gravity = -std::abs(gravity); // Ensure gravity is negative for direction 0
         bounce_end = 0;
         pos = position;
-        printf("direction 0: vel: %f\t pos %d\t bounce_end: %d \n", vel,pos,bounce_end);
     }
     blueprint.index = position;
     this->direction = direction;

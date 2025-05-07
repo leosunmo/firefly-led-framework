@@ -14,6 +14,7 @@ class BounceBall : public Effect{
         int direction = 1;
         float pos = 0; // Current index.
         float vel = 0; // Velocity.
+        // Bouncing is currently broken, it doesn't stand still enough to get removed.
         // float bounce_factor = 0.7;
         float bounce_factor = 0;
         float hue = 0;
