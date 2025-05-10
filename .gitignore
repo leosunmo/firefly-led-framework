@@ -33,3 +33,7 @@ picotool/
 
 # Debugging files
 pdm_viz/venv/
+
+# esp32
+esp32firefly/log
+!esp32firefly/build/esp32firefly.elf
