@@ -1,4 +1,3 @@
-
 #include "stdio.h"
 #include <vector>
 #include <string>
@@ -6,6 +5,7 @@
 #include "kylarLEDs/LEDInterface/LEDs.h"
 #include "kylarLEDs/EffectEngine/EffectEngine.h"
 #include "kylarLEDs/Controllers/FireFlyV2/FireFlyV2Controller.h"
+#include "kylarLEDs/Communication/UARTManager.h" 
 #include "Patterns/Examples/ExamplePattern.h"
 #include "Patterns/Examples/FireFlies.h"
 #include "Patterns/Examples/FireFliesSame.h"
@@ -28,15 +28,12 @@
 
 using namespace std;
 int main(){
-
     stdio_init_all();
-
-    printf("Serial initialized.\n");
 
     if(DEBUG_DELAY_MAIN) {
         sleep_ms(5000); // Delay for 5 seconds to allow for serial connection
     }
-    
+
     // Initialize effect encoder
     Encoder *effectEncoder = new Encoder(ENCODER_EFFECT_A, ENCODER_EFFECT_B);
     // Initialize effect button
@@ -49,8 +46,16 @@ int main(){
     // Initialize buttons
     Button *patternButton = new Button(ENCODER_PATTERN_BUTTON);
 
+    // Add physical inputs to the InputManager
+    auto& inputManager = FireFly::InputManager::getInstance();
+    inputManager.registerEncoder(FireFly::InputSource::HW_EFFECT_ENCODER, effectEncoder);
+    inputManager.registerButton(FireFly::InputSource::HW_EFFECT_BUTTON, effectButton);
+    inputManager.registerEncoder(FireFly::InputSource::HW_HUE_ENCODER, hueEncoder);
+    inputManager.registerButton(FireFly::InputSource::HW_PATTERN_BUTTON, patternButton);
+
+
     // Initialize framework infrastructure
-    Controller *ledController = new FireFlyV2Controller(hueEncoder, patternButton);
+    Controller *ledController = new FireFlyV2Controller();
 
     // Initialize the effect engine
     EffectEngine *effectEngine = new EffectEngine();
@@ -82,9 +87,9 @@ int main(){
     };
 
     // Add patterns to the vector
-    patterns->push_back(new Bounce(config1, effectEncoder, effectButton));
-    patterns->push_back(new ShakeelFlashBall(effectEncoder, effectButton));
-    patterns->push_back(new ShakeelFlash(effectEncoder, effectButton));
+    patterns->push_back(new Bounce(config1));
+    patterns->push_back(new ShakeelFlashBall());
+    patterns->push_back(new ShakeelFlash());
     // patterns->push_back(new Bounce(config2, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(config3, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(true));
@@ -122,6 +127,9 @@ int main(){
     // multicore_lockout_victim_init();        // This tells core0 to stop when data flashing on Core1 starts
     //Main loop
     while(1){
+        // Process any UART input at the start of each loop iteration
+        FireFly::UARTManager::getInstance().processInput();
+        
         if(DEBUG_PRINT_MAIN){
              // mem usage:
             struct mallinfo mi = mallinfo();
