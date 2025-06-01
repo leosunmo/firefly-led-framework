@@ -9,25 +9,46 @@ void ShakeelFlash::init()
     bar = new FullBar();
     bar->init();
 
-    ShakeelFlash::effectEncoder->setCallback([this](int count)
-    {
-            printf("Encoder count: %d\n", count);
-            if (count > 0)
+    // Register with InputManager instead of directly with encoder
+    auto& inputManager = FireFly::InputManager::getInstance();
+    
+    // Subscribe to effect encoder events
+    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_ENCODER, [this](const FireFly::InputEvent& event) {
+        printf("Encoder event: %d\n", event.value);
+        
+        // Determine if the encoder went up or down based on previous value
+        static int prevValue = 0;
+        int change = event.value - prevValue;
+        prevValue = event.value;
+        
+        if (change > 0)
+        {
+            if (baseBrightness < 0.95)
             {
-                if (baseBrightness < 0.95)
-                {
-                    baseBrightness += 0.05;
-                }
+                baseBrightness += 0.05;
             }
-            else
+        }
+        else if (change < 0)
+        {
+            baseBrightness -= 0.05;
+            if (baseBrightness < 0.05)
             {
-                baseBrightness -= 0.05;
-                if (baseBrightness < 0.05)
-                {
-                    baseBrightness = 0.05;
-                }
+                baseBrightness = 0.05;
             }
-            printf("Base Brightness: %f\n", baseBrightness);
+        }
+        printf("Base Brightness: %f\n", baseBrightness);
+    });
+    
+    // Also subscribe to UART custom param for the same functionality
+    inputManager.subscribe(FireFly::InputSource::UART_CUSTOM_PARAM_1, [this](const FireFly::InputEvent& event) {
+        printf("UART brightness param: %d\n", event.value);
+        
+        // Value from UART should be brightness value (0-100)
+        double brightness = event.value / 100.0;
+        if (brightness >= 0.05 && brightness <= 0.95) {
+            baseBrightness = brightness;
+            printf("Base Brightness (from UART): %f\n", baseBrightness);
+        }
     });
 }
 
@@ -41,7 +62,10 @@ void ShakeelFlash::run()
 
 void ShakeelFlash::release()
 {
-    effectEncoder->clearCallbacks();
-    effectButton->clearCallbacks();
+    // Unsubscribe from input events instead of clearing callbacks directly
+    auto& inputManager = FireFly::InputManager::getInstance();
+    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_ENCODER);
+    inputManager.unsubscribeAll(FireFly::InputSource::UART_CUSTOM_PARAM_1);
+    
     delete(bar);
 }

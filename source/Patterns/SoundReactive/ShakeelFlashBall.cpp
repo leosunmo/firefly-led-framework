@@ -10,20 +10,28 @@ void ShakeelFlashBall::init(){
     const int maxBaseSpeed = 100;
     bar = new FullBar();
     bar->init();
-    bool ballDirection = true;
+    ballDirection = true;
 
-    // Register encoder callback
-    ShakeelFlashBall::effectEncoder->setCallback([this](int count)
-{
-        printf("Encoder count: %d\n", count);
-        if (count > 0)
+    // Register with InputManager instead of directly with encoder/button
+    auto& inputManager = FireFly::InputManager::getInstance();
+    
+    // Subscribe to effect encoder events for speed control
+    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_ENCODER, [this, maxBaseSpeed](const FireFly::InputEvent& event) {
+        printf("Encoder event: %d\n", event.value);
+        
+        // Determine if the encoder went up or down based on previous value
+        static int prevValue = 0;
+        int change = event.value - prevValue;
+        prevValue = event.value;
+        
+        if (change > 0)
         {
             if (baseSpeed < maxBaseSpeed)
             {
                 baseSpeed += 10;
             }
         }
-        else
+        else if (change < 0)
         {
             baseSpeed -= 10;
             if (baseSpeed < 0)
@@ -31,18 +39,40 @@ void ShakeelFlashBall::init(){
                 baseSpeed = 0;
             }
         }
-});
+        printf("Base Speed: %.1f\n", baseSpeed);
+    });
+    
+    // Also subscribe to UART custom param for speed control
+    inputManager.subscribe(FireFly::InputSource::UART_CUSTOM_PARAM_2, [this, maxBaseSpeed](const FireFly::InputEvent& event) {
+        printf("UART speed param: %d\n", event.value);
+        
+        // Value from UART should be direct speed value (0-100)
+        int speed = event.value;
+        if (speed >= 0 && speed <= maxBaseSpeed) {
+            baseSpeed = speed;
+            printf("Base Speed (from UART): %.1f\n", baseSpeed);
+        }
+    });
 
-punchTimer = new Timing();
+    punchTimer = new Timing();
 
-    // Register button callback as "punch" button
-    ShakeelFlashBall::effectButton->setCallback([this]()
-{
-        // Reset the punch timer
-        punchTimer->reset();
-        ShakeelFlashBall::punch = true;
-});
-
+    // Subscribe to effect button events for punch effect
+    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_BUTTON, [this](const FireFly::InputEvent& event) {
+        if (event.value == 1) { // Button pressed (not released)
+            // Reset the punch timer
+            punchTimer->reset();
+            punch = true;
+        }
+    });
+    
+    // Subscribe to UART custom param for punch effect
+    inputManager.subscribe(FireFly::InputSource::UART_CUSTOM_PARAM_3, [this](const FireFly::InputEvent& event) {
+        if (event.value == 1) {
+            // Reset the punch timer
+            punchTimer->reset();
+            punch = true;
+        }
+    });
 }
 
 void ShakeelFlashBall::run(){
@@ -97,8 +127,13 @@ void ShakeelFlashBall::run(){
 }
 
 void ShakeelFlashBall::release(){
-    effectEncoder->clearCallbacks();
-    effectButton->clearCallbacks();
+    // Unsubscribe from input events instead of clearing callbacks directly
+    auto& inputManager = FireFly::InputManager::getInstance();
+    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_ENCODER);
+    inputManager.unsubscribeAll(FireFly::InputSource::UART_CUSTOM_PARAM_2);
+    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_BUTTON);
+    inputManager.unsubscribeAll(FireFly::InputSource::UART_CUSTOM_PARAM_3);
+    
     delete(punchTimer);
     delete(bar);
 }

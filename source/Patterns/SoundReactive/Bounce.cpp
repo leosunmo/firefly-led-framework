@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
+#include "../../kylarLEDs/Input/InputManager.h"
 
 int Bounce::maxAllowedThickness = 10; // Define static member with an initial value
 
@@ -14,30 +15,47 @@ void Bounce::init()
            config.maxThickness);
     int stripLen = LEDs::strip(0)->num();
 
-    // Register encoder callback
-    Bounce::effectEncoder->setCallback([this](int count)
-                                       {
-                                        printf("Encoder count: %d\n", count);
-        if (count > 0)
-        {
-            if (config.maxThickness < Bounce::maxAllowedThickness)
-            {
+    // Register with InputManager instead of directly with encoder
+    auto& inputManager = FireFly::InputManager::getInstance();
+    
+    // Subscribe to effect encoder events
+    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_ENCODER, [this](const FireFly::InputEvent& event) {
+        printf("Encoder event: %d\n", event.value);
+        
+        // Determine if the encoder went up or down based on previous value
+        static int prevValue = 0;
+        int change = event.value - prevValue;
+        prevValue = event.value;
+        
+        if (change > 0) {
+            if (config.maxThickness < Bounce::maxAllowedThickness) {
                 config.maxThickness++;
             }
-        }
-        else
-        {
-            if (config.maxThickness > 0)
-            {
+        } else {
+            if (config.maxThickness > 0) {
                 config.maxThickness--;
             }
-        } 
-
-            printf("Max Thickness: %d\n", config.maxThickness); });
-
-    // Register button callback
-    Bounce::effectButton->setCallback([this]()
-                                      { GPIOInterruptHandler::printCallbacks(); });
+        }
+        
+        printf("Max Thickness: %d\n", config.maxThickness);
+    });
+    
+    // Also subscribe to UART custom param 1 for the same functionality
+    inputManager.subscribe(FireFly::InputSource::UART_CUSTOM_PARAM_1, [this](const FireFly::InputEvent& event) {
+        printf("UART thickness param: %d\n", event.value);
+        
+        // Value from UART should be direct thickness value (0-10)
+        int thickness = event.value;
+        if (thickness >= 0 && thickness <= Bounce::maxAllowedThickness) {
+            config.maxThickness = thickness;
+            printf("Max Thickness (from UART): %d\n", config.maxThickness);
+        }
+    });
+    
+    // Subscribe to effect button events
+    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_BUTTON, [this](const FireFly::InputEvent& event) {
+        GPIOInterruptHandler::printCallbacks();
+    });
 
     secTimer = new Timing();
     avgTimer = new Timing();
@@ -189,11 +207,13 @@ void Bounce::run()
 
 void Bounce::release()
 {
-    effectEncoder->clearCallbacks();
-    effectButton->clearCallbacks();
+    // Unsubscribe from input events instead of clearing callbacks directly
+    auto& inputManager = FireFly::InputManager::getInstance();
+    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_ENCODER);
+    inputManager.unsubscribeAll(FireFly::InputSource::UART_CUSTOM_PARAM_1);
+    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_BUTTON);
 
     delete (secTimer);
     delete (avgTimer);
     delete (valTimer);
-    // delete pixels;
 }
