@@ -42,16 +42,17 @@ int main(){
     // Initialize encoders
     Encoder *hueEncoder = new Encoder(ENCODER_HUE_A, ENCODER_HUE_B);
     hueEncoder->setAccumulate(true);
+    hueEncoder->setRange(0, 359, true); // Hue range from 0 to 359 degrees with wrapping
     
     // Initialize buttons
     Button *patternButton = new Button(ENCODER_PATTERN_BUTTON);
 
     // Add physical inputs to the InputManager
     auto& inputManager = FireFly::InputManager::getInstance();
-    inputManager.registerEncoder(FireFly::InputSource::HW_EFFECT_ENCODER, effectEncoder);
-    inputManager.registerButton(FireFly::InputSource::HW_EFFECT_BUTTON, effectButton);
-    inputManager.registerEncoder(FireFly::InputSource::HW_HUE_ENCODER, hueEncoder);
-    inputManager.registerButton(FireFly::InputSource::HW_PATTERN_BUTTON, patternButton);
+    inputManager.registerEncoder(FireFly::InputEventType::SPEED, effectEncoder);
+    inputManager.registerButton(FireFly::InputEventType::EFFECT_PUNCH, effectButton);
+    inputManager.registerEncoder(FireFly::InputEventType::HUE, hueEncoder);
+    inputManager.registerButton(FireFly::InputEventType::PATTERN, patternButton);
 
 
     // Initialize framework infrastructure
