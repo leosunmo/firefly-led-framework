@@ -12,13 +12,14 @@ constexpr uint8_t MESSAGE_END = 0xFB;
 enum class CommandType : uint8_t {
     BRIGHTNESS = 0x01,      // Set brightness value
     PATTERN = 0x02,         // Change pattern
-    HUE = 0x03,             // Set hue value
+    HUE = 0x03,             // Set hue value (0-360 degrees)
     SATURATION = 0x04,      // Set saturation
     MODE = 0x05,            // Set operating mode
     SPEED = 0x06,           // Set animation speed
-    POWER = 0x07,           // Power on/off
-    GET_STATUS = 0x08,      // Request status
-    CUSTOM_PARAM = 0x09,    // Custom parameter (top byte indicates param number 1-3)
+    PUNCH = 0x07,           // Punch effect (0-1 value)
+    POWER = 0x08,           // Power on/off
+    GET_STATUS = 0x09,      // Request status
+    CUSTOM_PARAM = 0x0A,    // Custom parameter (top byte indicates param number 1-3)
     DEBUG = 0xFF,           // Debug message
 };
 

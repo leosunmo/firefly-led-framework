@@ -9,142 +9,179 @@ InputManager& InputManager::getInstance() {
 }
 
 InputManager::InputManager() {
-    // Initialize all current values to 0
-    for (int i = 0; i < static_cast<int>(InputSource::COUNT); i++) {
-        currentValues[static_cast<InputSource>(i)] = 0;
+    // Initialize all event values to 0
+    for (int i = 0; i < static_cast<int>(InputEventType::COUNT); i++) {
+        eventValues[static_cast<InputEventType>(i)] = 0;
     }
+    
+    // Set up UART command to event type mappings
+    uartCommandToEventTypeMap[CommandType::HUE] = InputEventType::HUE;
+    uartCommandToEventTypeMap[CommandType::BRIGHTNESS] = InputEventType::BRIGHTNESS;
+    uartCommandToEventTypeMap[CommandType::PATTERN] = InputEventType::PATTERN;
+    uartCommandToEventTypeMap[CommandType::SPEED] = InputEventType::SPEED;
+    uartCommandToEventTypeMap[CommandType::PUNCH] = InputEventType::EFFECT_PUNCH;
+
+    
+    // Set up custom parameter mappings
+    customParamToEventTypeMap[1] = InputEventType::CUSTOM_PARAM_1;
+    customParamToEventTypeMap[2] = InputEventType::CUSTOM_PARAM_2;
+    customParamToEventTypeMap[3] = InputEventType::CUSTOM_PARAM_3;
 }
 
-void InputManager::registerEncoder(InputSource source, Encoder* encoder) {
+int InputManager::registerEncoder(InputEventType eventType, Encoder* encoder) {
     if (encoder) {
-        encoders[source] = encoder;
+        int id = nextInputId++;
+        
+        // Store the encoder in our list
+        HardwareInput input = {
+            .id = id,
+            .eventType = eventType,
+            .encoder = encoder,
+            .inputType = InputType::ENCODER_ROTATION
+        };
+        hardwareInputs.push_back(input);
         
         // Set up encoder callback
-        encoder->setCallback([this, source](int count) {
-            this->handleEncoderChange(source, count);
+        encoder->setCallback([this, id, eventType](int count) {
+            this->handleEncoderChange(id, eventType, count);
         });
-    }
-}
-
-void InputManager::registerButton(InputSource source, Button* button) {
-    if (button) {
-        buttons[source] = button;
         
-        // Set up button callback
-        button->setCallback([this, source]() {
-            this->handleButtonPress(source);
-        });
+        return id;
     }
+    return 0;
 }
 
-void InputManager::handleEncoderChange(InputSource source, int count) {
-    // Update current value
-    currentValues[source] = count;
+int InputManager::registerButton(InputEventType eventType, Button* button) {
+    if (button) {
+        int id = nextInputId++;
+        
+        // Store the button in our list
+        HardwareInput input = {
+            .id = id,
+            .eventType = eventType,
+            .button = button,
+            .inputType = InputType::BUTTON_PRESS
+        };
+        hardwareInputs.push_back(input);
+        
+        // Set up button callback with press state parameter
+        button->setCallback([this, id, eventType](int state) {
+            this->handleButtonPress(id, eventType, state);
+        });
+        
+        return id;
+    }
+    return 0;
+}
+
+void InputManager::handleEncoderChange(int inputId, InputEventType eventType, int count) {
+    // Update input value
+    inputValues[inputId] = count;
+    
+    // Update event type value
+    eventValues[eventType] = count;
     
     // Create and trigger event
     InputEvent event = {
         .type = InputType::ENCODER_ROTATION,
-        .source = source,
-        .value = count
+        .eventType = eventType,
+        .value = count,
+        .inputId = inputId
     };
     
     triggerCallbacks(event);
 }
 
-void InputManager::handleButtonPress(InputSource source) {
-    // Toggle button state (0 or 1)
-    currentValues[source] = currentValues[source] ? 0 : 1;
+void InputManager::handleButtonPress(int inputId, InputEventType eventType, int state) {
+    // Set button state based on the provided state (1=pressed, 0=released)
+    inputValues[inputId] = state;
     
-    // Create and trigger event
+    // Update event type value
+    eventValues[eventType] = state;
+    
+    // Create and trigger event with updated type field
     InputEvent event = {
-        .type = InputType::BUTTON_PRESS,
-        .source = source,
-        .value = currentValues[source]
+        .type = state ? InputType::BUTTON_PRESS : InputType::BUTTON_RELEASE,
+        .eventType = eventType,
+        .value = state,
+        .inputId = inputId
     };
     
     triggerCallbacks(event);
 }
 
 void InputManager::processUARTMessage(const UARTMessage& msg) {
-    InputSource source;
     InputType type = InputType::VALUE_CHANGE;
     int32_t value = static_cast<int32_t>(msg.value);
+    InputEventType eventType;
+    bool validCommand = true;
     
-    // Map UARTMessage command types to InputSources
+    // Map UARTMessage command types to event types
     switch (msg.cmdType) {
         case CommandType::BRIGHTNESS:
-            source = InputSource::UART_BRIGHTNESS;
-            break;
-            
         case CommandType::HUE:
-            source = InputSource::UART_HUE;
-            break;
-            
         case CommandType::PATTERN:
-            source = InputSource::UART_PATTERN;
+        case CommandType::PUNCH:
+        case CommandType::SPEED: {
+            auto it = uartCommandToEventTypeMap.find(msg.cmdType);
+            if (it != uartCommandToEventTypeMap.end()) {
+                eventType = it->second;
+            } else {
+                printf("Error: No event type mapping for UART command type %d\n", 
+                       static_cast<int>(msg.cmdType));
+                validCommand = false;
+            }
             break;
-            
-        case CommandType::SPEED:
-            source = InputSource::UART_SPEED;
-            break;
+        }
             
         case CommandType::CUSTOM_PARAM: {
-            // Handle custom parameters in a block scope to isolate variable declarations
             uint8_t paramNum = (msg.value >> 24) & 0xFF;
             uint32_t paramValue = msg.value & 0xFFFFFF;
             
-            if (paramNum == 1) source = InputSource::UART_CUSTOM_PARAM_1;
-            else if (paramNum == 2) source = InputSource::UART_CUSTOM_PARAM_2;
-            else source = InputSource::UART_CUSTOM_PARAM_3;
-            
-            // Update the value to use the extracted parameter value
-            value = static_cast<int32_t>(paramValue);
-            
-            // Update current value and trigger callbacks
-            currentValues[source] = value;
-            
-            // Create and trigger event
-            InputEvent event = {
-                .type = type,
-                .source = source,
-                .value = value
-            };
-            
-            triggerCallbacks(event);
-            return;  // We've already handled this special case
+            auto it = customParamToEventTypeMap.find(paramNum);
+            if (it != customParamToEventTypeMap.end()) {
+                eventType = it->second;
+                value = static_cast<int32_t>(paramValue);
+            } else {
+                printf("Error: No event type mapping for custom parameter %d\n", paramNum);
+                validCommand = false;
+            }
+            break;
         }
             
         default:
             printf("Unknown UART command type: %d\n", static_cast<int>(msg.cmdType));
-            return;
+            validCommand = false;
     }
     
-    // Create and trigger event
-    InputEvent event = {
-        .type = type,
-        .source = source,
-        .value = value
-    };
-    
-    // Update current value
-    currentValues[source] = value;
-    
-    // Trigger callbacks
-    triggerCallbacks(event);
+    if (validCommand) {
+        // Update the event value
+        eventValues[eventType] = value;
+        
+        // Create and trigger event
+        InputEvent event = {
+            .type = type,
+            .eventType = eventType,
+            .value = value,
+            .inputId = 0  // 0 indicates UART source
+        };
+        
+        triggerCallbacks(event);
+    }
 }
 
-void InputManager::subscribe(InputSource source, InputCallback callback) {
+void InputManager::subscribe(InputEventType eventType, InputCallback callback) {
     if (callback) {
-        callbacks.insert(std::make_pair(source, callback));
+        callbacks.insert(std::make_pair(eventType, callback));
     }
 }
 
-void InputManager::unsubscribeAll(InputSource source) {
-    callbacks.erase(source);
+void InputManager::unsubscribeAll(InputEventType eventType) {
+    callbacks.erase(eventType);
 }
 
 void InputManager::triggerCallbacks(const InputEvent& event) {
-    auto range = callbacks.equal_range(event.source);
+    auto range = callbacks.equal_range(event.eventType);
     for (auto it = range.first; it != range.second; ++it) {
         if (it->second) {
             it->second(event);
@@ -152,9 +189,9 @@ void InputManager::triggerCallbacks(const InputEvent& event) {
     }
 }
 
-int32_t InputManager::getValue(InputSource source) const {
-    auto it = currentValues.find(source);
-    if (it != currentValues.end()) {
+int32_t InputManager::getValue(InputEventType eventType) const {
+    auto it = eventValues.find(eventType);
+    if (it != eventValues.end()) {
         return it->second;
     }
     return 0;

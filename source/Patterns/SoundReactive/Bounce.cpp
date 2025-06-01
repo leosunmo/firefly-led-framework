@@ -18,42 +18,20 @@ void Bounce::init()
     // Register with InputManager instead of directly with encoder
     auto& inputManager = FireFly::InputManager::getInstance();
     
-    // Subscribe to effect encoder events
-    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_ENCODER, [this](const FireFly::InputEvent& event) {
-        printf("Encoder event: %d\n", event.value);
-        
-        // Determine if the encoder went up or down based on previous value
-        static int prevValue = 0;
-        int change = event.value - prevValue;
-        prevValue = event.value;
-        
-        if (change > 0) {
-            if (config.maxThickness < Bounce::maxAllowedThickness) {
-                config.maxThickness++;
-            }
-        } else {
-            if (config.maxThickness > 0) {
-                config.maxThickness--;
-            }
-        }
-        
-        printf("Max Thickness: %d\n", config.maxThickness);
-    });
-    
-    // Also subscribe to UART custom param 1 for the same functionality
-    inputManager.subscribe(FireFly::InputSource::UART_CUSTOM_PARAM_1, [this](const FireFly::InputEvent& event) {
-        printf("UART thickness param: %d\n", event.value);
+    // Subscribe to custom event for thickness parameter
+    inputManager.subscribe(FireFly::InputEventType::CUSTOM_PARAM_1, [this](const FireFly::InputEvent& event) {
+        printf("CUSTOM_PARAM_1 thickness param: %d\n", event.value);
         
         // Value from UART should be direct thickness value (0-10)
         int thickness = event.value;
         if (thickness >= 0 && thickness <= Bounce::maxAllowedThickness) {
             config.maxThickness = thickness;
-            printf("Max Thickness (from UART): %d\n", config.maxThickness);
+            printf("Max Thickness: %d\n", config.maxThickness);
         }
     });
     
     // Subscribe to effect button events
-    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_BUTTON, [this](const FireFly::InputEvent& event) {
+    inputManager.subscribe(FireFly::InputEventType::EFFECT_PUNCH, [this](const FireFly::InputEvent& event) {
         GPIOInterruptHandler::printCallbacks();
     });
 
@@ -209,9 +187,8 @@ void Bounce::release()
 {
     // Unsubscribe from input events instead of clearing callbacks directly
     auto& inputManager = FireFly::InputManager::getInstance();
-    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_ENCODER);
-    inputManager.unsubscribeAll(FireFly::InputSource::UART_CUSTOM_PARAM_1);
-    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_BUTTON);
+    inputManager.unsubscribeAll(FireFly::InputEventType::CUSTOM_PARAM_1);
+    inputManager.unsubscribeAll(FireFly::InputEventType::EFFECT_PUNCH);
 
     delete (secTimer);
     delete (avgTimer);

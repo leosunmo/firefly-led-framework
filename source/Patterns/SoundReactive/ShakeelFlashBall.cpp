@@ -3,9 +3,8 @@
 #include <math.h>
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
 
-
-
-void ShakeelFlashBall::init(){
+void ShakeelFlashBall::init()
+{
     printf("Initialized ShakeelFlashBall\n");
     const int maxBaseSpeed = 100;
     bar = new FullBar();
@@ -13,12 +12,15 @@ void ShakeelFlashBall::init(){
     ballDirection = true;
 
     // Register with InputManager instead of directly with encoder/button
-    auto& inputManager = FireFly::InputManager::getInstance();
-    
+    auto &inputManager = FireFly::InputManager::getInstance();
+
     // Subscribe to effect encoder events for speed control
-    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_ENCODER, [this, maxBaseSpeed](const FireFly::InputEvent& event) {
+    inputManager.subscribe(FireFly::InputEventType::SPEED, [this, maxBaseSpeed](const FireFly::InputEvent &event)
+                           {
         printf("Encoder event: %d\n", event.value);
         
+        if(event.type == FireFly::InputType::ENCODER_ROTATION) {
+            printf("Base Speed encoder rotation: %d\n", event.value);
         // Determine if the encoder went up or down based on previous value
         static int prevValue = 0;
         int change = event.value - prevValue;
@@ -39,44 +41,32 @@ void ShakeelFlashBall::init(){
                 baseSpeed = 0;
             }
         }
-        printf("Base Speed: %.1f\n", baseSpeed);
-    });
-    
-    // Also subscribe to UART custom param for speed control
-    inputManager.subscribe(FireFly::InputSource::UART_CUSTOM_PARAM_2, [this, maxBaseSpeed](const FireFly::InputEvent& event) {
-        printf("UART speed param: %d\n", event.value);
-        
-        // Value from UART should be direct speed value (0-100)
+    } else if (event.type == FireFly::InputType::VALUE_CHANGE) {
+        printf("Base Speed UART value change: %d\n", event.value);
+                // Value from UART should be direct speed value (0-100)
         int speed = event.value;
         if (speed >= 0 && speed <= maxBaseSpeed) {
             baseSpeed = speed;
             printf("Base Speed (from UART): %.1f\n", baseSpeed);
         }
-    });
+    }
+        printf("Base Speed: %.1f\n", baseSpeed); });
 
     punchTimer = new Timing();
 
     // Subscribe to effect button events for punch effect
-    inputManager.subscribe(FireFly::InputSource::HW_EFFECT_BUTTON, [this](const FireFly::InputEvent& event) {
-        if (event.value == 1) { // Button pressed (not released)
+    inputManager.subscribe(FireFly::InputEventType::EFFECT_PUNCH, [this](const FireFly::InputEvent &event)
+                           {
+        if (event.value > 0) {
             // Reset the punch timer
             punchTimer->reset();
             punch = true;
-        }
-    });
-    
-    // Subscribe to UART custom param for punch effect
-    inputManager.subscribe(FireFly::InputSource::UART_CUSTOM_PARAM_3, [this](const FireFly::InputEvent& event) {
-        if (event.value == 1) {
-            // Reset the punch timer
-            punchTimer->reset();
-            punch = true;
-        }
-    });
+        } });
 }
 
-void ShakeelFlashBall::run(){
-    double micVal = pow(Microphone::getLowNormal(),2) ;
+void ShakeelFlashBall::run()
+{
+    double micVal = pow(Microphone::getLowNormal(), 2);
     bar->micVal = micVal;
     bar->baseBrightness = baseBrightness;
     bar->run();
@@ -102,9 +92,10 @@ void ShakeelFlashBall::run(){
     static bool ball_ready = true;
     if (micVal > 0.5)
     {
-        if (ball_ready) {
+        if (ball_ready)
+        {
             // Make new BOunce Ball
-            BounceBall * ball = new BounceBall();
+            BounceBall *ball = new BounceBall();
             ball->init();
 
             // Set speed based on micVal
@@ -113,8 +104,8 @@ void ShakeelFlashBall::run(){
 
             // Vary the ball direction each time
             printf("Ball direction: %d\n", ballDirection);
-            int pos = ballDirection ? 0 : static_cast<int>(LEDs::strip(0)->num())-1;
-            ball->reset(pos, ballDirection ? 1 : 0, 1, (rand()%100)/100.0, 0.01, speed);
+            int pos = ballDirection ? 0 : static_cast<int>(LEDs::strip(0)->num()) - 1;
+            ball->reset(pos, ballDirection ? 1 : 0, 1, (rand() % 100) / 100.0, 0.01, speed);
             ballDirection = !ballDirection; // Toggle direction for the next ball
             Effect::engine->queueApply(ball);
         }
@@ -126,14 +117,13 @@ void ShakeelFlashBall::run(){
     }
 }
 
-void ShakeelFlashBall::release(){
+void ShakeelFlashBall::release()
+{
     // Unsubscribe from input events instead of clearing callbacks directly
-    auto& inputManager = FireFly::InputManager::getInstance();
-    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_ENCODER);
-    inputManager.unsubscribeAll(FireFly::InputSource::UART_CUSTOM_PARAM_2);
-    inputManager.unsubscribeAll(FireFly::InputSource::HW_EFFECT_BUTTON);
-    inputManager.unsubscribeAll(FireFly::InputSource::UART_CUSTOM_PARAM_3);
-    
-    delete(punchTimer);
-    delete(bar);
+    auto &inputManager = FireFly::InputManager::getInstance();
+    inputManager.unsubscribeAll(FireFly::InputEventType::SPEED);
+    inputManager.unsubscribeAll(FireFly::InputEventType::EFFECT_PUNCH);
+
+    delete (punchTimer);
+    delete (bar);
 }

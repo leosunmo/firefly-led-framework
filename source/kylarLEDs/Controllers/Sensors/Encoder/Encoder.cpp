@@ -68,16 +68,42 @@ void Encoder::handleInterrupt()
     last_direction = current_direction;
     last_time = new_time;
 
+    int newCount = Encoder::count;
+    
     if (Encoder::accumulate)
     {
-        // If we are accumilating update count based on direction
-    Encoder::count += add * current_direction;
+        // If we are accumulating, update count based on direction
+        newCount += add * current_direction;
+        
+        // Apply range constraints
+        if (wrapAround && (maxValue > minValue)) // Ensure valid range for wrapping
+        {
+            // Calculate range size (adding 1 because ranges are inclusive)
+            int range = maxValue - minValue + 1;
+            
+            // Wrap around within range using modulo arithmetic
+            if (newCount > maxValue || newCount < minValue)
+            {
+                // Adjust to be within range using modulo
+                newCount = minValue + ((newCount - minValue) % range + range) % range;
+            }
+        }
+        else
+        {
+            // Clamp to range without wrapping
+            if (newCount > maxValue)
+                newCount = maxValue;
+            else if (newCount < minValue)
+                newCount = minValue;
+        }
     }
     else
     {
-        // If we are not accumulating, add or subtract the count
-        Encoder::count = current_direction;
+        // If we are not accumulating, just use the direction
+        newCount = current_direction;
     }
+    
+    Encoder::count = newCount;
 
     for (const auto &callback : Encoder::callbacks)
     {

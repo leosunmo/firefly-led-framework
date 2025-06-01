@@ -40,12 +40,10 @@ FireFlyV2Controller::FireFlyV2Controller()
 
     // Set up the pattern index increment on button press
     auto &inputManager = FireFly::InputManager::getInstance();
-    inputManager.subscribe(FireFly::InputSource::HW_PATTERN_BUTTON, [this](const FireFly::InputEvent &event)
+    inputManager.subscribe(FireFly::InputEventType::PATTERN, [this](const FireFly::InputEvent &event)
                            {
-        if (event.value == 1) { // Button pressed (not released)
             printf("Pattern button pressed\n");
-            (*this->patternIndex)++;
-        } });
+            (*this->patternIndex)++; });
 }
 
 /**
@@ -218,7 +216,7 @@ double FireFlyV2Controller::getBrightness()
 
         // Get UART brightness value (0-255 normalized to 0-1)
         double uartBrightness = FireFly::InputManager::getInstance().getValue(
-                                    FireFly::InputSource::UART_BRIGHTNESS) /
+                                    FireFly::InputEventType::BRIGHTNESS) /
                                 255.0;
 
         // Use UART value if it's been set, otherwise use hardware
@@ -239,12 +237,12 @@ double FireFlyV2Controller::getHue()
 {
     // Get UART hue value (0-255 normalized to 0-1)
     double uartHue = FireFly::InputManager::getInstance().getValue(
-                         FireFly::InputSource::UART_HUE) /
+                         FireFly::InputEventType::HUE) /
                      255.0;
 
     // Get hardware encoder hue (normalized to 0-1)
     int32_t encoderValue = FireFly::InputManager::getInstance().getValue(
-        FireFly::InputSource::HW_HUE_ENCODER);
+        FireFly::InputEventType::HUE);
     double encoderHue = (encoderValue % 360) / 360.0;
 
     // Use UART hue if it's been set, otherwise use encoder
