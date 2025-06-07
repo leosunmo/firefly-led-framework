@@ -9,12 +9,23 @@
 
 absolute_time_t FireFlyV2Controller::channel_end_times[NUM_STRIPS];
 strip_t FireFlyV2Controller::strips[NUM_STRIPS];
-FireFlyV2Controller::FireFlyV2Controller(Encoder *hueEncoder, Button *patternButton)
-    : hueEncoder(hueEncoder), patternButton(patternButton)
+FireFlyV2Controller::FireFlyV2Controller()
 {
-
+    // Make sure we set the clock before we initiate communication
+    // as it affects for example the UART baud rate.
+    if (OVERCLOCK)
+    {
+        // How to overclock (or underclock!)
+        if (!set_sys_clock_khz(250000, false))
+        {
+            printf("system clock 250MHz failed\n");
+        }
+        else
+        {
+            printf("system clock now 250MHz\n");
+        }
+    }
     setStatusLED(255);
-
     initCommunication();
     initBrightness();
     if (MICROPHONE_ENABLE)
@@ -27,18 +38,12 @@ FireFlyV2Controller::FireFlyV2Controller(Encoder *hueEncoder, Button *patternBut
 
     setStatusLED(10);
 
-    // Register callbacks for encoders
-    hueEncoder->setCallback([this](int count) {
-        printf("Hue encoder count: %d\n", count);
-        this->hue = count / 360.0;
-        printf("Hue: %f\n", this->hue);
-    });
-
-    // Register callbacks for buttons
-    patternButton->setCallback([this]() {
-        printf("Pattern button pressed\n");
-        (*this->patternIndex)++;
-    });
+    // Set up the pattern index increment on button press
+    auto &inputManager = FireFly::InputManager::getInstance();
+    inputManager.subscribe(FireFly::InputEventType::PATTERN, [this](const FireFly::InputEvent &event)
+                           {
+            printf("Pattern button pressed\n");
+            (*this->patternIndex)++; });
 }
 
 /**
@@ -126,27 +131,15 @@ void FireFlyV2Controller::initOutput()
 
 void FireFlyV2Controller::initCommunication()
 {
-    // Initialize UART1 with baud rate 19200
-    uart_init(uart1, 19200);
+    // Initialize the UARTManager
+    auto &uartManager = FireFly::UARTManager::getInstance();
+    uartManager.init(uart1, UART_BAUD_RATE, UART_TX_PIN, UART_RX_PIN); // UART1, 19200 baud, TX on GPIO 4, RX on GPIO 5
 
-    // Set the GPIO pins for UART1
-    gpio_set_function(4, GPIO_FUNC_UART); // UART1 TX (not used in this example)
-    gpio_set_function(5, GPIO_FUNC_UART); // UART1 RX
+    // Set the status LED callback
+    uartManager.setStatusLEDCallback([this](uint8_t brightness)
+                                     { this->setStatusLED(brightness); });
 
     printf("Communication established\n");
-
-    if (OVERCLOCK)
-    {
-        // How to overclock (or underclock!)
-        if (!set_sys_clock_khz(250000, false))
-        {
-            printf("system clock 250MHz failed\n");
-        }
-        else
-        {
-            printf("system clock now 250MHz\n");
-        }
-    }
 }
 
 uint64_t FireFlyV2Controller::getCurrentTimeMicros()
@@ -212,59 +205,55 @@ void FireFlyV2Controller::outputLEDs(uint8_t strip_i, uint8_t *leds, uint32_t N)
 
 double FireFlyV2Controller::getBrightness()
 {
-    static double brightness = 0;
-    static double lastPot = 0;
-
-    // Buffer to accumulate received data
-    char buffer[256];
-    int idx = 0;
-
-    // Read data from UART1
-    while (uart_is_readable(uart1))
-    {
-        setStatusLED(255);
-        char ch = uart_getc(uart1);
-        // Accumulate into buffer
-        if (ch == '\n' || ch == '\r')
-        {
-            buffer[idx] = '\0'; // Null-terminate the string
-            printf("Received from ESP32-C3: %s\n", buffer);
-            idx = 0; // Reset buffer index
-        }
-        else if (idx < sizeof(buffer) - 1)
-        {
-            buffer[idx++] = ch;
-        }
-        else
-        {
-            // Buffer overflow, reset index
-            idx = 0;
-        }
-        setStatusLED(1);
-    }
-
 #ifdef HARDCODE_BRIGHTNESS
     return HARDCODE_BRIGHTNESS;
 #endif
+
     if (timing->takeMsEvery(10))
     {
+        // Get hardware potentiometer value
         double newPot = analogPot->getValue();
-        brightness = (lastPot * 400 + newPot) / 401.0;
-        lastPot = (lastPot * 2.0 + newPot) / 3.0;
-        // setStatusLED((uint8_t)(newPot*255)); // Test for Potentiometer
+
+        // Get UART brightness value (0-255 normalized to 0-1)
+        double uartBrightness = FireFly::InputManager::getInstance().getValue(
+                                    FireFly::InputEventType::BRIGHTNESS) /
+                                255.0;
+
+        // Use UART value if it's been set, otherwise use hardware
+        if (uartBrightness > 0)
+        {
+            brightness = (brightness * 5.0 + uartBrightness) / 6.0;
+        }
+        else
+        {
+            brightness = (brightness * 5.0 + newPot) / 6.0;
+        }
     }
-    else
-    {
-        return brightness;
-    }
-    brightness = brightness * brightness;
-    return brightness;
+
+    return brightness * brightness; // Apply gamma correction
 }
 
 double FireFlyV2Controller::getHue()
 {
-    // setStatusLED((uint8_t)(fmod(fabs(hue),1.0)*255)); // Test for Encoder
-    return hue;
+    // Get UART hue value (0-255 normalized to 0-1)
+    double uartHue = FireFly::InputManager::getInstance().getValue(
+                         FireFly::InputEventType::HUE) /
+                     255.0;
+
+    // Get hardware encoder hue (normalized to 0-1)
+    int32_t encoderValue = FireFly::InputManager::getInstance().getValue(
+        FireFly::InputEventType::HUE);
+    double encoderHue = (encoderValue % 360) / 360.0;
+
+    // Use UART hue if it's been set, otherwise use encoder
+    if (uartHue > 0)
+    {
+        return uartHue;
+    }
+    else
+    {
+        return encoderHue;
+    }
 }
 
 void FireFlyV2Controller::initBrightness()
@@ -282,3 +271,5 @@ void FireFlyV2Controller::initMicrophone()
     // assert(HW_ADC_MIC == 1); // Commenting out because we can accept both on this controller...
     Microphone::start(ADC_MIC); // This argument does nothing! Use the config.h / HW_ADC_MIC / HW_PDM_MIC to select the microphone type.
 }
+
+// UART processing is now handled by UARTManager

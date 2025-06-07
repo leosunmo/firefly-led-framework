@@ -13,7 +13,7 @@ Button::Button(int pin) : pin(pin), last_time(get_absolute_time())
                                            { this->handleInterrupt(); });
 }
 
-void Button::setCallback(std::function<void()> callback)
+void Button::setCallback(std::function<void(int)> callback)
 {
     Button::callbacks.push_back(callback);
 }
@@ -45,9 +45,11 @@ void Button::handleInterrupt()
         press_state = 0;
     }
 
-    // Call all callbacks
+    // Call all callbacks with the current press state
+    // press_state = 1 means button is pressed
+    // press_state = 0 means button is released
     for (const auto &callback : Button::callbacks)
     {
-        callback();
+        callback(press_state);
     }
 }

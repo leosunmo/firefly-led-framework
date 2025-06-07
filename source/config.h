@@ -17,7 +17,7 @@
 // #define NUM_LEDS 720 
 #define NUM_LEDS 287
 // #define LEDS_OFFSET -6
-#define HARDCODE_BRIGHTNESS 0.7 // Comment this out if you don't want to hardcode the brightness. This overrides the Potentiometer.
+// #define HARDCODE_BRIGHTNESS 0.7 // Comment this out if you don't want to hardcode the brightness. This overrides the Potentiometer.
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////

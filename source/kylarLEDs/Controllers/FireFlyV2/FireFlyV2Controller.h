@@ -6,8 +6,13 @@
 #include "../Sensors/Button/Button.h"
 #include "../Sensors/Microphone/Microphone.h"
 #include "../../Utility/Timing.h"
+#include "../../Communication/UARTManager.h"
+#include "../../Input/InputManager.h"
 
 #define PX_PINS 3
+#define UART_BAUD_RATE 19200
+#define UART_TX_PIN 4
+#define UART_RX_PIN 5
 
 typedef struct {
     uint8_t pin;
@@ -18,7 +23,7 @@ typedef struct {
 
 class FireFlyV2Controller : public Controller {
     public:
-        FireFlyV2Controller(Encoder *hueEncoder, Button *patternButton);
+        FireFlyV2Controller();
         //using Controller::Controller;
         void outputLEDs(uint8_t strip, uint8_t *leds, uint32_t N); // leds is an array, N is the length
         uint64_t getCurrentTimeMillis();
@@ -35,6 +40,9 @@ class FireFlyV2Controller : public Controller {
     private:
         void initDMA(PIO pio, uint sm);
         void setStatusLED(uint8_t brightness);
+
+        double brightness = 0.0;
+        double hueValue = 0.0;
 
         static strip_t strips[NUM_STRIPS];
         // uint8_t PX_pins[PX_PINS] = {14, 15, 16, 9};
@@ -55,10 +63,7 @@ class FireFlyV2Controller : public Controller {
 
         
         // Inputs:
-        Encoder *hueEncoder;
-        Encoder *brightnessEncoder;
         Potentiometer *analogPot;
         Timing *timing;
-        Button *patternButton;
         Microphone *microphone;
 };

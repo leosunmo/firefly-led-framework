@@ -1,5 +1,6 @@
 #pragma once
 #include "stdint.h"
+#include <limits>
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include <functional>
@@ -10,8 +11,17 @@ class Encoder
 {
 public:
     Encoder(int A, int B);
+    int minValue = std::numeric_limits<int>::min();
+    int maxValue = std::numeric_limits<int>::max();
+    bool wrapAround = false;
+    
     int getCount() const;
     void setAccumulate(bool accumulate) { this->accumulate = accumulate; }
+    void setRange(int min, int max, bool wrap = false) {
+        minValue = min;
+        maxValue = max;
+        wrapAround = wrap;
+    }
     void setCallback(std::function<void(int)> callback);
     void clearCallbacks();
 

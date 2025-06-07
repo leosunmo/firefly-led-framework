@@ -20,15 +20,13 @@ class Bounce : public Pattern
     BounceConfig config;
 
 public:
-    Bounce(const BounceConfig &config, Encoder *effectEncoder, Button *effectButton) : Pattern(), config(config), effectEncoder(effectEncoder),effectButton(effectButton) {}
+    Bounce(BounceConfig config) : config(config) {}
     using Pattern::Pattern;
     void run();
     void init();
     void release();
 
     static int maxAllowedThickness;
-    Encoder *effectEncoder;
-    Button *effectButton;
 
 private:
     Timing *avgTimer;

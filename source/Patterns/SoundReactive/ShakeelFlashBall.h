@@ -1,22 +1,19 @@
 #pragma once
 #include "../Pattern.h"
 #include "../../kylarLEDs/Utility/Timing.h"
-#include "../../kylarLEDs/Controllers/Sensors/Encoder/Encoder.h"
-#include "../../kylarLEDs/Controllers/Sensors/Button/Button.h"
+#include "../../kylarLEDs/Input/InputManager.h"
 #include "../../Effects/SoundReactive/FullBar.h"
 #include "../../Effects/SoundReactive/BounceBall.h"
 #include <vector>
 class ShakeelFlashBall : public Pattern{
 
     public:
-        ShakeelFlashBall(Encoder *effectEncoder, Button *effectButton) : Pattern(), effectEncoder(effectEncoder), effectButton(effectButton) {}
-        using Pattern::Pattern;
+        // New constructor with no parameters
+        ShakeelFlashBall() : Pattern() {}
+        
         void run();
         void init();
         void release();
-
-        Encoder *effectEncoder;
-        Button *effectButton;
     private:
         // baseSpeed is the variable baseline speed set by the encoder
         double baseSpeed = 0.0;

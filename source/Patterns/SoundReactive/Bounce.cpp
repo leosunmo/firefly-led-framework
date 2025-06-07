@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
+#include "../../kylarLEDs/Input/InputManager.h"
 
 int Bounce::maxAllowedThickness = 10; // Define static member with an initial value
 
@@ -14,30 +15,25 @@ void Bounce::init()
            config.maxThickness);
     int stripLen = LEDs::strip(0)->num();
 
-    // Register encoder callback
-    Bounce::effectEncoder->setCallback([this](int count)
-                                       {
-                                        printf("Encoder count: %d\n", count);
-        if (count > 0)
-        {
-            if (config.maxThickness < Bounce::maxAllowedThickness)
-            {
-                config.maxThickness++;
-            }
+    // Register with InputManager instead of directly with encoder
+    auto& inputManager = FireFly::InputManager::getInstance();
+    
+    // Subscribe to custom event for thickness parameter
+    inputManager.subscribe(FireFly::InputEventType::CUSTOM_PARAM_1, [this](const FireFly::InputEvent& event) {
+        printf("CUSTOM_PARAM_1 thickness param: %d\n", event.value);
+        
+        // Value from UART should be direct thickness value (0-10)
+        int thickness = event.value;
+        if (thickness >= 0 && thickness <= Bounce::maxAllowedThickness) {
+            config.maxThickness = thickness;
+            printf("Max Thickness: %d\n", config.maxThickness);
         }
-        else
-        {
-            if (config.maxThickness > 0)
-            {
-                config.maxThickness--;
-            }
-        } 
-
-            printf("Max Thickness: %d\n", config.maxThickness); });
-
-    // Register button callback
-    Bounce::effectButton->setCallback([this]()
-                                      { GPIOInterruptHandler::printCallbacks(); });
+    });
+    
+    // Subscribe to effect button events
+    inputManager.subscribe(FireFly::InputEventType::EFFECT_PUNCH, [this](const FireFly::InputEvent& event) {
+        GPIOInterruptHandler::printCallbacks();
+    });
 
     secTimer = new Timing();
     avgTimer = new Timing();
@@ -189,11 +185,12 @@ void Bounce::run()
 
 void Bounce::release()
 {
-    effectEncoder->clearCallbacks();
-    effectButton->clearCallbacks();
+    // Unsubscribe from input events instead of clearing callbacks directly
+    auto& inputManager = FireFly::InputManager::getInstance();
+    inputManager.unsubscribeAll(FireFly::InputEventType::CUSTOM_PARAM_1);
+    inputManager.unsubscribeAll(FireFly::InputEventType::EFFECT_PUNCH);
 
     delete (secTimer);
     delete (avgTimer);
     delete (valTimer);
-    // delete pixels;
 }

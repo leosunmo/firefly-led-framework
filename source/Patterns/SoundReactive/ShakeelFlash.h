@@ -2,15 +2,14 @@
 #include "../Pattern.h"
 #include "../../kylarLEDs/Utility/Timing.h"
 #include "../../Effects/SoundReactive/FullBar.h"
-#include "../../kylarLEDs/Controllers/Sensors/Encoder/Encoder.h"
-#include "../../kylarLEDs/Controllers/Sensors/Button/Button.h"
+#include "../../kylarLEDs/Input/InputManager.h"
 #include <vector>
 
 class ShakeelFlash : public Pattern{
 
     public:
-        ShakeelFlash(Encoder *effectEncoder, Button *effectButton) : Pattern(), effectEncoder(effectEncoder), effectButton(effectButton) {}
-        using Pattern::Pattern;
+        ShakeelFlash() : Pattern() {}
+
         void run();
         void init();
         void release();
