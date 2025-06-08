@@ -23,8 +23,16 @@ void FullBar::init()
 void FullBar::run()
 {
     double seconds = secTimer->takeSeconds();
-    double micAdd = micVal / 50; // trying to even out timing
+    double micAdd;
+    if (smoothingMicVal <= 0.0)
+    {
+        micAdd = micVal; // If smoothingMicVal is 0, use micVal directly
+    } else
+    {
+        micAdd = micVal / smoothingMicVal; // trying to even out timing
+    }
 
+    printf("MicVal: %f\tMicAdd: %f\tsmoothingMicVal: %f\n", micVal, micAdd, smoothingMicVal);
     int avgLoops = 0;
     avgLoops = hueTimer->takeMsEvery(1);
     for (int i = 0; i < avgLoops; i++)
@@ -64,6 +72,11 @@ void FullBar::run()
         pixel->micVal = micVal;
         pixel->hueAdd = hueAdd * seconds * 100.0;
     }
+}
+
+void FullBar::resetSecTimer()
+{
+    secTimer->reset();
 }
 
 FullBar::~FullBar()

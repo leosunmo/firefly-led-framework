@@ -17,6 +17,10 @@ class ShakeelFlash : public Pattern{
         Encoder *effectEncoder;
         Button *effectButton;
     private:
+        // punch is an effect booster that is triggered for a short time
+        // when the button is pressed
+        bool punch = false;
+        Timing *punchTimer;
         double baseBrightness = 0.9; // Adjust this value to set the minimum brightness level
         FullBar * bar;
 };
