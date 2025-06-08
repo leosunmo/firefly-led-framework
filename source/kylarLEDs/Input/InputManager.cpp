@@ -93,13 +93,15 @@ void InputManager::handleEncoderChange(int inputId, InputEventType eventType, in
 }
 
 void InputManager::handleButtonPress(int inputId, InputEventType eventType, int state) {
-    // Set button state based on the provided state (1=pressed, 0=released)
+    // State is directly from the Button class:
+    // - state=1 means button is pressed (connected to ground)
+    // - state=0 means button is released (pulled up)
     inputValues[inputId] = state;
     
-    // Update event type value
+    // Update event type value with the button state
     eventValues[eventType] = state;
     
-    // Create and trigger event with updated type field
+    // Create and trigger event with the appropriate input type
     InputEvent event = {
         .type = state ? InputType::BUTTON_PRESS : InputType::BUTTON_RELEASE,
         .eventType = eventType,
@@ -158,6 +160,14 @@ void InputManager::processUARTMessage(const UARTMessage& msg) {
         // Update the event value
         eventValues[eventType] = value;
         
+        // For button-related event types, use button press/release input types
+        if (isButtonEventType(eventType) || msg.cmdType == CommandType::PUNCH) {
+            // Interpret value as button state: 1=pressed, 0=released
+            bool isPressed = (value != 0);
+            type = isPressed ? InputType::BUTTON_PRESS : InputType::BUTTON_RELEASE;
+            value = isPressed ? 1 : 0; // Normalize to 1 or 0
+        }
+        
         // Create and trigger event
         InputEvent event = {
             .type = type,
@@ -195,6 +205,14 @@ int32_t InputManager::getValue(InputEventType eventType) const {
         return it->second;
     }
     return 0;
+}
+
+bool InputManager::isButtonEventType(InputEventType eventType) const {
+    // List of event types that represent button interactions
+    return (eventType == InputEventType::EFFECT_PUNCH || 
+            eventType == InputEventType::PATTERN);
+    
+    // Add any other button event types as needed
 }
 
 } // namespace FireFly

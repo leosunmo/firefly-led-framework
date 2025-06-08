@@ -42,8 +42,11 @@ FireFlyV2Controller::FireFlyV2Controller()
     auto &inputManager = FireFly::InputManager::getInstance();
     inputManager.subscribe(FireFly::InputEventType::PATTERN, [this](const FireFly::InputEvent &event)
                            {
+                            if (event.value == 1) // Button pressed
+                            {
             printf("Pattern button pressed\n");
-            (*this->patternIndex)++; });
+    
+            (*this->patternIndex)++; } });
 }
 
 /**
