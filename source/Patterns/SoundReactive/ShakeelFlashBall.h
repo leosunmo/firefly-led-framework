@@ -17,6 +17,8 @@ class ShakeelFlashBall : public Pattern{
     private:
         // baseSpeed is the variable baseline speed set by the encoder
         double baseSpeed = 0.0;
+
+        double prevBaseSpeed = 0.0;
         // ballDirection is the direction of the ball
         // 0/false = left, 1/true = right
         bool ballDirection = true;
@@ -25,6 +27,8 @@ class ShakeelFlashBall : public Pattern{
         bool punch = false;
 
         double baseBrightness = 0.9; // Adjust this value to set the minimum brightness level
+
+        double ballTriggerThreshold = 0.5; // Threshold for triggering a new ball
 
         FullBar * bar;
         Timing *punchTimer;

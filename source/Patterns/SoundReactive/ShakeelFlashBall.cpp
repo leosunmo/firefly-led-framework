@@ -6,7 +6,7 @@
 void ShakeelFlashBall::init()
 {
     printf("Initialized ShakeelFlashBall\n");
-    const int maxBaseSpeed = 100;
+    const int maxBaseSpeed = 300;
     bar = new FullBar();
     bar->init();
     ballDirection = true;
@@ -41,6 +41,7 @@ void ShakeelFlashBall::init()
                 baseSpeed = 0;
             }
         }
+        printf("Base Speed (from encoder): %.1f\n", baseSpeed);
     } else if (event.type == FireFly::InputType::VALUE_CHANGE) {
         printf("Base Speed UART value change: %d\n", event.value);
                 // Value from UART should be direct speed value (0-100)
@@ -72,25 +73,30 @@ void ShakeelFlashBall::run()
     bar->run();
 
     // If the punch button is pressed, increase the brightness and set the hue to a bright color
-    // if (punch)
-    // {
-    //     // Let the punch run for a half second
-    //     if (punchTimer->timerMs() < 500)
-    //     {
-    //         brightness += 10.0; // Boost brightness
-    //     }
-    //     else
-    //     {
-    //         punch = false; // Reset the punch state
+    if (punch)
+    {
+        // Let the punch run for a half second
+        if (punchTimer->timerMs() < 500)
+        {
+            bar->brightness += 0.9; // Boost brightness
+            bar->smoothingMicVal = 20; // Lower smoothing for a more responsive effect
+            ballTriggerThreshold -= 0.2; // Boost ball trigger threshold
+        }
+        else
+        {
+            punch = false; // Reset the punch state
 
-    //         // Reset the secTimer so hueAdd doesn't flash forward.
-    //         secTimer->reset();
-    //     }
-    // }
+            // Reset the secTimer so hueAdd doesn't flash forward.
+            bar->resetSecTimer();
+            bar->brightness = baseBrightness; // Reset brightness to base level
+            bar->smoothingMicVal = 50; // Reset smoothing to a lower value
+            ballTriggerThreshold = 0.5; // Reset ball trigger threshold
+        }
+    }
 
     // Add BounceBalls
     static bool ball_ready = true;
-    if (micVal > 0.5)
+    if (micVal > ballTriggerThreshold)
     {
         if (ball_ready)
         {
