@@ -98,6 +98,9 @@ private:
     // Hardware callback handlers
     void handleEncoderChange(int inputId, InputEventType eventType, int count);
     void handleButtonPress(int inputId, InputEventType eventType, int state);
+    
+    // Helper to determine if an event type represents a button-related event
+    bool isButtonEventType(InputEventType eventType) const;
 };
 
 } // namespace FireFly
