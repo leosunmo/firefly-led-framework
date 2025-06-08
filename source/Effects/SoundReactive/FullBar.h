@@ -10,9 +10,14 @@ class FullBar : public Effect{
         using Effect::Effect;
         void run();
         void init();
+        void resetSecTimer();
+
         ~FullBar();
 
         float micVal = 0;
+
+        float smoothingMicVal = 50;
+
         float hueAdd = 0;
         // Adjust this value to set the baseline brightness level.
         // Maximum should probably be around 0.95.

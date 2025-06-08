@@ -8,46 +8,21 @@ void ShakeelFlash::init()
     printf("Initialized ShakeelFlash\n");
     bar = new FullBar();
     bar->init();
+    punchTimer = new Timing();
 
     // Register with InputManager instead of directly with encoder
     auto& inputManager = FireFly::InputManager::getInstance();
     
+
+
     // Subscribe to effect encoder events
-    inputManager.subscribe(FireFly::InputEventType::CUSTOM_PARAM_1, [this](const FireFly::InputEvent& event) {
+    inputManager.subscribe(FireFly::InputEventType::EFFECT_PUNCH, [this](const FireFly::InputEvent& event) {
         printf("Encoder event: %d\n", event.value);
-        
-        if(event.type == FireFly::InputType::ENCODER_ROTATION) {
-            printf("baseBrightness encoder rotation: %d\n", event.value);
-        // Determine if the encoder went up or down based on previous value
-        static int prevValue = 0;
-        int change = event.value - prevValue;
-        prevValue = event.value;
-        
-        if (change > 0)
-        {
-            if (baseBrightness < 0.95)
-            {
-                baseBrightness += 0.05;
-            }
-        }
-        else if (change < 0)
-        {
-            baseBrightness -= 0.05;
-            if (baseBrightness < 0.05)
-            {
-                baseBrightness = 0.05;
-            }
-        }
-    } else if (event.type == FireFly::InputType::VALUE_CHANGE) {
-        printf("baseBrightness UART value change: %d\n", event.value);
-                // Value from UART should be brightness value (0-100)
-        double brightness = event.value / 100.0;
-        if (brightness >= 0.05 && brightness <= 0.95) {
-            baseBrightness = brightness;
-        }
-    }
-        printf("Base Brightness: %f\n", baseBrightness);
-    });
+        if (event.value > 0) {
+            // Reset the punch timer
+            punchTimer->reset();
+            punch = true;
+        } });
 }
 
 void ShakeelFlash::run()
@@ -55,6 +30,27 @@ void ShakeelFlash::run()
     double micVal = pow(Microphone::getLowNormal(), 2);
     bar->micVal = micVal;
     bar->baseBrightness = baseBrightness;
+    // If the punch button is pressed, lower reactivity threshold
+    if (punch)
+    {
+        // Let the punch run for a half second
+        if (punchTimer->timerMs() < 5000)
+        {
+            bar->brightness += 0.9; // Boost brightness
+            bar->smoothingMicVal = 20; // Reset smoothing to a lower value
+        }
+        else
+        {
+            punch = false; // Reset the punch state
+
+            // Reset the secTimer so hueAdd doesn't flash forward.
+            bar->resetSecTimer();
+            bar->brightness = baseBrightness; // Reset brightness to base level
+            bar->smoothingMicVal = 50; // Reset smoothing to a lower value
+        }
+    }
+
+
     bar->run();
 }
 
@@ -62,7 +58,7 @@ void ShakeelFlash::release()
 {
     // Unsubscribe from input events instead of clearing callbacks directly
     auto& inputManager = FireFly::InputManager::getInstance();
-    inputManager.unsubscribeAll(FireFly::InputEventType::CUSTOM_PARAM_1);
-    
+    inputManager.unsubscribeAll(FireFly::InputEventType::EFFECT_PUNCH);
+    delete (punchTimer);
     delete(bar);
 }
