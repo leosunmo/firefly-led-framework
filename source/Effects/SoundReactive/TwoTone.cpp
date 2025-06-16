@@ -168,7 +168,6 @@ void TwoTone::run()
         micAdd = processedAudio / smoothingMicVal; // trying to even out timing
     }
 
-    printf("MicVal: %f\tMicAdd: %f\tsmoothingMicVal: %f\n", processedAudio, micAdd, smoothingMicVal);
     int avgLoops = 0;
     avgLoops = hueTimer->takeMsEvery(1);
     for (int i = 0; i < avgLoops; i++)
