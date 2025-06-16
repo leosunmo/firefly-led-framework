@@ -19,6 +19,7 @@
 #include "Patterns/SoundReactive/HeartPattern.h"
 #include "Patterns/SoundReactive/CirclesPattern.h"
 #include "Patterns/SoundReactive/Raindrop.h"
+#include "Patterns/SoundReactive/ChromaWave.h"
 #include "kylarLEDs/Utility/ExecTimer.h"
 #include <malloc.h>
 #include "pico/time.h"
@@ -34,25 +35,25 @@ int main(){
         sleep_ms(5000); // Delay for 5 seconds to allow for serial connection
     }
 
-    // Initialize effect encoder
-    Encoder *effectEncoder = new Encoder(ENCODER_EFFECT_A, ENCODER_EFFECT_B);
-    // Initialize effect button
-    Button *effectButton = new Button(ENCODER_EFFECT_BUTTON);
+    // // Initialize effect encoder
+    // Encoder *effectEncoder = new Encoder(ENCODER_EFFECT_A, ENCODER_EFFECT_B);
+    // // Initialize effect button
+    // Button *effectButton = new Button(ENCODER_EFFECT_BUTTON);
 
-    // Initialize encoders
-    Encoder *hueEncoder = new Encoder(ENCODER_HUE_A, ENCODER_HUE_B);
-    hueEncoder->setAccumulate(true);
-    hueEncoder->setRange(0, 359, true); // Hue range from 0 to 359 degrees with wrapping
+    // // Initialize encoders
+    // Encoder *hueEncoder = new Encoder(ENCODER_HUE_A, ENCODER_HUE_B);
+    // hueEncoder->setAccumulate(true);
+    // hueEncoder->setRange(0, 359, true); // Hue range from 0 to 359 degrees with wrapping
     
-    // Initialize buttons
-    Button *patternButton = new Button(ENCODER_PATTERN_BUTTON);
+    // // Initialize buttons
+    // Button *patternButton = new Button(ENCODER_PATTERN_BUTTON);
 
-    // Add physical inputs to the InputManager
-    auto& inputManager = FireFly::InputManager::getInstance();
-    inputManager.registerEncoder(FireFly::InputEventType::SPEED, effectEncoder);
-    inputManager.registerButton(FireFly::InputEventType::EFFECT_PUNCH, effectButton);
-    inputManager.registerEncoder(FireFly::InputEventType::HUE, hueEncoder);
-    inputManager.registerButton(FireFly::InputEventType::PATTERN, patternButton);
+    // // Add physical inputs to the InputManager
+    // auto& inputManager = FireFly::InputManager::getInstance();
+    // inputManager.registerEncoder(FireFly::InputEventType::SPEED, effectEncoder);
+    // inputManager.registerButton(FireFly::InputEventType::EFFECT_PUNCH, effectButton);
+    // inputManager.registerEncoder(FireFly::InputEventType::HUE, hueEncoder);
+    // inputManager.registerButton(FireFly::InputEventType::PATTERN, patternButton);
 
 
     // Initialize framework infrastructure
@@ -88,9 +89,11 @@ int main(){
     };
 
     // Add patterns to the vector
-    patterns->push_back(new Bounce(config1));
-    patterns->push_back(new ShakeelFlashBall());
+    patterns->push_back(new ChromaWave());
     patterns->push_back(new ShakeelFlash());
+    patterns->push_back(new ShakeelFlashBall());
+    patterns->push_back(new Bounce(config1));
+
     // patterns->push_back(new Bounce(config2, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(config3, effectEncoder, effectButton));
     // patterns->push_back(new Bounce(true));
