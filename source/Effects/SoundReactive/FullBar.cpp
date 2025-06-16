@@ -32,7 +32,6 @@ void FullBar::run()
         micAdd = micVal / smoothingMicVal; // trying to even out timing
     }
 
-    printf("MicVal: %f\tMicAdd: %f\tsmoothingMicVal: %f\n", micVal, micAdd, smoothingMicVal);
     int avgLoops = 0;
     avgLoops = hueTimer->takeMsEvery(1);
     for (int i = 0; i < avgLoops; i++)
