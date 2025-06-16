@@ -80,8 +80,22 @@
  * Signal Processing Options
  */
 #define LOW_BINS 20
+#define MID_BINS 30
 #define SKIP_BINS 0
-#define HIGH_BINS 100
+#define HIGH_BINS 70
+
+/**
+ * Frequency band ranges in Hz
+ * These are calculated based on the bin-to-frequency conversion formula:
+ * freq = 15.628*bin + 0.286
+ * Where bin starts at 3 and each band has the number of bins defined above
+ */
+#define LOW_BAND_START 47    // ~47.17 Hz
+#define LOW_BAND_END   344   // ~344.10 Hz
+#define MID_BAND_START 360   // ~359.73 Hz
+#define MID_BAND_END   813   // ~812.94 Hz
+#define HIGH_BAND_START 829  // ~828.57 Hz
+#define HIGH_BAND_END  1907  // ~1906.90 Hz
 
 
 ////////////////////////////////////////////////////////////
