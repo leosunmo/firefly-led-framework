@@ -25,11 +25,14 @@ class Microphone{
         static void start(mic_type);
         static double getFreqCenter();
         static double getHighFreqCenter();
+        static double getMidFreqCenter();
         static double getLowFreqCenter();
         static double getEnergy();
         static double getLowEnergy();
+        static double getMidEnergy();
         static double getHighEnergy();
         static double getLowNormal();
+        static double getMidNormal();
         static double getHighNormal();
     private:
         static int initialized;
