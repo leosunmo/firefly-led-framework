@@ -6,13 +6,11 @@
 #include <deque>
 
 // Enum for frequency band selection
-// NOTE: Currently LOW and HIGH bands are implemented
-// The MID band will use the LOW frequency data until getMidNormal() is implemented
 enum class FrequencyBand {
     LOW,    // Bass frequencies
-    MID,    // Mid-range frequencies (currently using LOW as fallback)
+    MID,    // Mid-range frequencies
     HIGH,   // High frequencies (treble)
-    FULL    // Full spectrum (currently averaging LOW and HIGH)
+    FULL    // Full spectrum (average of LOW, MID, and HIGH)
 };
 
 // Enum for audio response curve

@@ -69,17 +69,14 @@ float TwoTone::processAudio(float rawAudio)
             audioInput = Microphone::getLowNormal();
             break;
         case FrequencyBand::MID:
-            // Mid frequency not implemented yet, use low frequency instead
-            audioInput = Microphone::getLowNormal(); // TODO: Replace with getMidNormal() when implemented
+            audioInput = Microphone::getMidNormal();
             break;
         case FrequencyBand::HIGH:
             audioInput = Microphone::getHighNormal();
             break;
         case FrequencyBand::FULL:
-            // Use average of available bands for full spectrum response
-            audioInput = (Microphone::getLowNormal() + Microphone::getHighNormal()) / 2.0f;
-            // TODO: Update to include getMidNormal() when implemented:
-            // audioInput = (Microphone::getLowNormal() + Microphone::getMidNormal() + Microphone::getHighNormal()) / 3.0f;
+            // Use average of all available bands for full spectrum response
+            audioInput = (Microphone::getLowNormal() + Microphone::getMidNormal() + Microphone::getHighNormal()) / 3.0f;
             break;
     }
 
@@ -387,15 +384,10 @@ void TwoTone::applyBeatExpand(float processedAudio) {
 void TwoTone::applySpectrumFlow(float processedAudio) {
     // Get levels from different frequency bands
     float lowLevel = Microphone::getLowNormal();
-    
-    // Create a synthetic mid level until getMidNormal() is implemented
-    float midLevel = (Microphone::getLowNormal() + Microphone::getHighNormal()) / 2.0f;
-    
-    // Use the actual high frequency data
+    float midLevel = Microphone::getMidNormal();
     float highLevel = Microphone::getHighNormal();
     
-    // Add some randomization to make the mid value appear more distinct
-    midLevel = std::min(1.0f, std::max(0.0f, midLevel + ((rand() % 10) - 5) * 0.01f));
+    // No need for randomization now that we have real mid-range data
     
     // Square them for better response
     lowLevel = lowLevel * lowLevel;
