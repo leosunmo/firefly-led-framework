@@ -7,6 +7,7 @@ void ShakeelFlashBall::init()
 {
     printf("Initialized ShakeelFlashBall\n");
     const int maxBaseSpeed = 300;
+    const int minBaseSpeed = 50;
     bar = new FullBar();
     bar->init();
     ballDirection = true;
@@ -21,38 +22,22 @@ void ShakeelFlashBall::init()
         
         if(event.type == FireFly::InputType::ENCODER_ROTATION) {
             printf("Base Speed encoder rotation: %d\n", event.value);
-        // Determine if the encoder went up or down based on previous value
-        static int prevValue = 0;
-        int change = event.value - prevValue;
-        prevValue = event.value;
-        
-        if (change > 0)
-        {
-            if (baseSpeed < maxBaseSpeed)
-            {
-                baseSpeed += 10;
+                        
+            // Map event.value (0-100) to range minBaseSpeed-maxBaseSpeed
+            if(event.value >= 0 && event.value <= 100) {
+                baseSpeed = minBaseSpeed + ((maxBaseSpeed - minBaseSpeed) * event.value) / 100.0;
+                printf("Mapped encoder value %d to speed %.1f (range %d-%d)\n", 
+                       event.value, baseSpeed, minBaseSpeed, maxBaseSpeed);
             }
-        }
-        else if (change < 0)
-        {
-            baseSpeed -= 10;
-            if (baseSpeed < 0)
-            {
-                baseSpeed = 0;
-            }
-        }
-        printf("Base Speed (from encoder): %.1f\n", baseSpeed);
     } else if (event.type == FireFly::InputType::VALUE_CHANGE) {
-        printf("Base Speed UART value change: %d\n", event.value);
-                // Value from UART should be direct speed value (0-100)
-        int speed = event.value;
-        if (speed >= 0 && speed <= maxBaseSpeed) {
-            baseSpeed = speed;
-            printf("Base Speed (from UART): %.1f\n", baseSpeed);
-        }
+            // Map event.value (0-100) to range minBaseSpeed-maxBaseSpeed
+            if(event.value >= 0 && event.value <= 100) {
+                baseSpeed = minBaseSpeed + ((maxBaseSpeed - minBaseSpeed) * event.value) / 100.0;
+                printf("Mapped UART value %d to speed %.1f (range %d-%d)\n", 
+                        event.value, baseSpeed, minBaseSpeed, maxBaseSpeed);
+            }
     }
-        printf("Base Speed: %.1f\n", baseSpeed); });
-
+    });
     punchTimer = new Timing();
 
     // Subscribe to effect button events for punch effect
@@ -67,8 +52,10 @@ void ShakeelFlashBall::init()
 
 void ShakeelFlashBall::run()
 {
-    double micVal = pow(Microphone::getLowNormal(), 2);
-    bar->micVal = micVal;
+    double lowMicVal = pow(Microphone::getLowNormal(), 2);
+    double midMicVal = pow(Microphone::getMidNormal(), 2);
+    double highMicVal = pow(Microphone::getHighNormal(), 2);
+    bar->micVal = lowMicVal;
     bar->baseBrightness = baseBrightness;
     bar->run();
 
@@ -96,7 +83,7 @@ void ShakeelFlashBall::run()
 
     // Add BounceBalls
     static bool ball_ready = true;
-    if (micVal > ballTriggerThreshold)
+    if (highMicVal > ballTriggerThreshold)
     {
         if (ball_ready)
         {
@@ -104,8 +91,8 @@ void ShakeelFlashBall::run()
             BounceBall *ball = new BounceBall();
             ball->init();
 
-            // Set speed based on micVal
-            double speed = 50.0 * micVal / 0.8 + baseSpeed * (micVal / 0.8); // Scale micVal and add baseSpeed as a booster
+            // Set speed based on highMicVal
+            double speed = 50.0 * highMicVal / 0.8 + baseSpeed * (highMicVal / 0.8); // Scale lowMicVal and add baseSpeed as a booster
             printf("BaseSpeed: %f\tSpeed: %f\n", baseSpeed, speed);
 
             // Vary the ball direction each time

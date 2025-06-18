@@ -28,7 +28,7 @@ class ShakeelFlashBall : public Pattern{
 
         double baseBrightness = 0.9; // Adjust this value to set the minimum brightness level
 
-        double ballTriggerThreshold = 0.5; // Threshold for triggering a new ball
+        double ballTriggerThreshold = 0.3; // Threshold for triggering a new ball
 
         FullBar * bar;
         Timing *punchTimer;
