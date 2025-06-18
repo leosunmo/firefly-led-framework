@@ -13,6 +13,7 @@ void TwoTone::init()
         SoundPixel *eff = new SoundPixel();
         eff->i = i;
         eff->hue = 0.0;
+        eff->hueAdd = 0.0f; // Initialize hueAdd to 0 to prevent unwanted hue changes
         eff->strip = 0;
         Effect::engine->apply(eff);
         pixels->push_back(eff);
@@ -22,9 +23,10 @@ void TwoTone::init()
     brightnessTimer = new Timing();
     
     // Initialize with default values
-    hue1 = 0.0f;            // Red (shown when quiet)
-    hue2 = 0.66f;           // Blue (mixed in as audio increases)
-    pulsePeriod = 1.0f;     // Not used in this simpler implementation
+    setHue1(0.0f);            // Red (shown when quiet)
+    setHue2(0.66f);           // Blue (mixed in as audio increases)
+    updateRGBColors();        // Set initial RGB colors
+    
     pulseReactivity = 5.0f; // Higher values mean more color change for the same audio level
     pulsePosition = 0.0f;   // Start at first hue
     
@@ -213,6 +215,7 @@ void TwoTone::run()
         pixel->micVal = processedAudio;
         
         // Hue and saturation are set by the current visualization mode
+        // We don't need to set hueAdd here as we're explicitly setting it to 0 in each visualization method
     }
 }
 
@@ -243,22 +246,35 @@ void TwoTone::applyVisualization(float processedAudio) {
                     pulsePosition = 0.0f;
                 }
                 
-                // Handle shortest path for hue interpolation
-                float hueDiff = hue2 - hue1;
-                if (hueDiff > 0.5f) hueDiff -= 1.0f;
-                if (hueDiff < -0.5f) hueDiff += 1.0f;
-                
-                // Linear interpolation between the two hues
-                float currentHue = hue1 + hueDiff * pulsePosition;
-                
-                // Normalize to [0,1] range
-                if (currentHue < 0.0f) currentHue += 1.0f;
-                if (currentHue >= 1.0f) currentHue -= 1.0f;
-                
-                // Set the color for all pixels
-                for (SoundPixel *pixel : *pixels) {
-                    pixel->hue = currentHue;
-                    pixel->saturation = saturation;
+                // Set colors based on the selected transition mode
+                if (transitionMode == ColorTransitionMode::RGB_DIRECT) {
+                    // Use RGB interpolation for smoother transitions
+                    rgb_t currentRGB = lerpRGB(rgb1, rgb2, pulsePosition);
+                    
+                    // Set the color for all pixels using RGB mode
+                    for (SoundPixel *pixel : *pixels) {
+                        pixel->setRGB(currentRGB.r, currentRGB.g, currentRGB.b);
+                        pixel->brightness = brightness;
+                    }
+                } else {
+                    // Traditional HSV interpolation using shortest path
+                    float hueDiff = hue2 - hue1;
+                    if (hueDiff > 0.5f) hueDiff -= 1.0f;
+                    if (hueDiff < -0.5f) hueDiff += 1.0f;
+                    
+                    // Linear interpolation between the two hues
+                    float currentHue = hue1 + hueDiff * pulsePosition;
+                    
+                    // Normalize to [0,1] range
+                    if (currentHue < 0.0f) currentHue += 1.0f;
+                    if (currentHue >= 1.0f) currentHue -= 1.0f;
+                    
+                    // Set the color for all pixels
+                    for (SoundPixel *pixel : *pixels) {
+                        pixel->hue = currentHue;
+                        pixel->saturation = saturation;
+                        pixel->hueAdd = 0.0f; // Prevent SoundPixel from incrementing the hue we just set
+                    }
                 }
             }
             break;
@@ -297,27 +313,45 @@ void TwoTone::applyBeatFlash(float processedAudio) {
         pulsePosition = pulsePosition * decayRate;
     }
     
-    // Handle shortest path for hue interpolation
-    float hueDiff = hue2 - hue1;
-    if (hueDiff > 0.5f) hueDiff -= 1.0f;
-    if (hueDiff < -0.5f) hueDiff += 1.0f;
-    
-    // Linear interpolation between the two hues
-    float currentHue = hue1 + hueDiff * pulsePosition;
-    
-    // Normalize to [0,1] range
-    if (currentHue < 0.0f) currentHue += 1.0f;
-    if (currentHue >= 1.0f) currentHue -= 1.0f;
-    
     // Decay flash intensity
     beatFlashIntensity *= 0.8f; // Fast decay for flash effect
     
     // Set the color with flash effect (moving toward white on beat)
     float flashSaturation = saturation * (1.0f - beatFlashIntensity * beatReaction);
     
-    for (SoundPixel *pixel : *pixels) {
-        pixel->hue = currentHue;
-        pixel->saturation = flashSaturation; // Lower saturation = more white
+    if (transitionMode == ColorTransitionMode::RGB_DIRECT) {
+        // RGB interpolation
+        rgb_t currentRGB = lerpRGB(rgb1, rgb2, pulsePosition);
+        
+        // Apply flash effect - move toward white by increasing all channels
+        float flashEffect = beatFlashIntensity * beatReaction;
+        rgb_t flashRGB = currentRGB;
+        flashRGB.r = currentRGB.r + (1.0f - currentRGB.r) * flashEffect;
+        flashRGB.g = currentRGB.g + (1.0f - currentRGB.g) * flashEffect;
+        flashRGB.b = currentRGB.b + (1.0f - currentRGB.b) * flashEffect;
+        
+        for (SoundPixel *pixel : *pixels) {
+            pixel->setRGB(flashRGB.r, flashRGB.g, flashRGB.b);
+            pixel->brightness = brightness;
+        }
+    } else {
+        // Traditional HSV interpolation
+        float hueDiff = hue2 - hue1;
+        if (hueDiff > 0.5f) hueDiff -= 1.0f;
+        if (hueDiff < -0.5f) hueDiff += 1.0f;
+        
+        // Linear interpolation between the two hues
+        float currentHue = hue1 + hueDiff * pulsePosition;
+        
+        // Normalize to [0,1] range
+        if (currentHue < 0.0f) currentHue += 1.0f;
+        if (currentHue >= 1.0f) currentHue -= 1.0f;
+        
+        for (SoundPixel *pixel : *pixels) {
+            pixel->hue = currentHue;
+            pixel->saturation = flashSaturation; // Lower saturation = more white
+            pixel->hueAdd = 0.0f; // Prevent SoundPixel from incrementing the hue we just set
+        }
     }
 }
 
@@ -358,24 +392,39 @@ void TwoTone::applyBeatExpand(float processedAudio) {
         float expandRadius = beatExpandProgress * 0.5f; // Expands to full strip width
         
         // For beat expand effect - create moving wave from center
-        if (distFromCenter < expandRadius) {
-            // Use hue2 for pixels in the expanding wave
-            pixel->hue = hue2;
+        if (transitionMode == ColorTransitionMode::RGB_DIRECT) {
+            if (distFromCenter < expandRadius) {
+                // Use color2 for pixels in the expanding wave
+                pixel->setRGB(rgb2.r, rgb2.g, rgb2.b);
+            } else {
+                // Use interpolated color for other pixels
+                rgb_t currentRGB = lerpRGB(rgb1, rgb2, pulsePosition);
+                pixel->setRGB(currentRGB.r, currentRGB.g, currentRGB.b);
+            }
+            
+            pixel->brightness = brightness;
         } else {
-            // Use hue1 + normal pulse mapping for other pixels
-            float hueDiff = hue2 - hue1;
-            if (hueDiff > 0.5f) hueDiff -= 1.0f;
-            if (hueDiff < -0.5f) hueDiff += 1.0f;
+            if (distFromCenter < expandRadius) {
+                // Use hue2 for pixels in the expanding wave
+                pixel->hue = hue2;
+            } else {
+                // Use hue1 + normal pulse mapping for other pixels
+                float hueDiff = hue2 - hue1;
+                if (hueDiff > 0.5f) hueDiff -= 1.0f;
+                if (hueDiff < -0.5f) hueDiff += 1.0f;
+                
+                float currentHue = hue1 + hueDiff * pulsePosition;
+                if (currentHue < 0.0f) currentHue += 1.0f;
+                if (currentHue >= 1.0f) currentHue -= 1.0f;
+                
+                pixel->hue = currentHue;
+            }
             
-            float currentHue = hue1 + hueDiff * pulsePosition;
-            if (currentHue < 0.0f) currentHue += 1.0f;
-            if (currentHue >= 1.0f) currentHue -= 1.0f;
-            
-            pixel->hue = currentHue;
+            // Keep saturation consistent
+            pixel->saturation = saturation;
+            // Ensure hueAdd is zeroed out to prevent unwanted hue changes
+            pixel->hueAdd = 0.0f;
         }
-        
-        // Keep saturation consistent
-        pixel->saturation = saturation;
     }
 }
 
@@ -417,20 +466,49 @@ void TwoTone::applySpectrumFlow(float processedAudio) {
         SoundPixel *pixel = (*pixels)[i];
         
         // Assign different frequency bands to different sections
-        if (i < lowSection) {
-            // Low frequency section - set hue and make brightness reactive to bass
-            pixel->hue = lowHue;
-            pixel->saturation = saturation;
-        } 
-        else if (i < midSection) {
-            // Mid frequency section
-            pixel->hue = midHue;
-            pixel->saturation = saturation;
-        } 
-        else {
-            // High frequency section
-            pixel->hue = highHue;
-            pixel->saturation = saturation;
+        if (transitionMode == ColorTransitionMode::RGB_DIRECT) {
+            // Convert hues to RGB for each section
+            hsv_t lowHsv = {lowHue, saturation, 1.0f};
+            hsv_t midHsv = {midHue, saturation, 1.0f};
+            hsv_t highHsv = {highHue, saturation, 1.0f};
+            
+            rgb_t lowRgb = ColorUtil::hsv2rgb(lowHsv);
+            rgb_t midRgb = ColorUtil::hsv2rgb(midHsv);
+            rgb_t highRgb = ColorUtil::hsv2rgb(highHsv);
+            
+            if (i < lowSection) {
+                // Low frequency section
+                pixel->setRGB(lowRgb.r, lowRgb.g, lowRgb.b);
+            } 
+            else if (i < midSection) {
+                // Mid frequency section
+                pixel->setRGB(midRgb.r, midRgb.g, midRgb.b);
+            } 
+            else {
+                // High frequency section
+                pixel->setRGB(highRgb.r, highRgb.g, highRgb.b);
+            }
+            
+            pixel->brightness = brightness;
+        } else {
+            if (i < lowSection) {
+                // Low frequency section - set hue and make brightness reactive to bass
+                pixel->hue = lowHue;
+                pixel->saturation = saturation;
+                pixel->hueAdd = 0.0f; // Prevent SoundPixel from incrementing the hue
+            } 
+            else if (i < midSection) {
+                // Mid frequency section
+                pixel->hue = midHue;
+                pixel->saturation = saturation;
+                pixel->hueAdd = 0.0f; // Prevent SoundPixel from incrementing the hue
+            } 
+            else {
+                // High frequency section
+                pixel->hue = highHue;
+                pixel->saturation = saturation;
+                pixel->hueAdd = 0.0f; // Prevent SoundPixel from incrementing the hue
+            }
         }
     }
 }
@@ -450,18 +528,18 @@ void TwoTone::setHue1(float value)
 {
     // Normalize hue value to [0,1] range
     hue1 = value < 0 ? fmod(value, 1.0f) + 1.0f : fmod(value, 1.0f);
+    
+    // Update RGB colors whenever hue1 changes
+    updateRGBColors();
 }
 
 void TwoTone::setHue2(float value)
 {
     // Normalize hue value to [0,1] range
     hue2 = value < 0 ? fmod(value, 1.0f) + 1.0f : fmod(value, 1.0f);
-}
-
-void TwoTone::setPeriod(float seconds)
-{
-    // Ensure a minimum period to prevent division by zero
-    pulsePeriod = std::max(0.1f, seconds);
+    
+    // Update RGB colors whenever hue2 changes
+    updateRGBColors();
 }
 
 void TwoTone::setReactivity(float value)
@@ -479,8 +557,19 @@ void TwoTone::setAttackRate(float value)
 
 void TwoTone::setDecayRate(float value)
 {
-    // Higher values = slower decay, constrain to reasonable range
-    decayRate = std::min(0.99f, std::max(0.5f, value));
+    // Higher values = slower decay
+    // Constrain input to [0.5, 1.0] range first
+    float constrainedValue = std::min(1.0f, std::max(0.5f, value));
+    
+    // Apply non-linear mapping: 
+    // Map input range [0.5, 1.0] to effective decay range [0.85, 0.99]
+    // This makes lower values still have a reasonable decay rather than instant drops
+    float minOutput = 0.85f;  // Minimum effective decay rate (at value=0.5)
+    float maxOutput = 0.99f;  // Maximum effective decay rate (at value=1.0)
+    
+    // Normalize input to [0,1] range and apply linear mapping to output range
+    float normalizedInput = (constrainedValue - 0.5f) / 0.5f;
+    decayRate = minOutput + normalizedInput * (maxOutput - minOutput);
 }
 
 void TwoTone::setFrequencyBand(FrequencyBand band)
@@ -497,6 +586,9 @@ void TwoTone::setSaturation(float value)
 {
     // Clamp saturation to [0,1] range
     saturation = std::min(1.0f, std::max(0.0f, value));
+    
+    // Update RGB colors when saturation changes
+    updateRGBColors();
 }
 
 void TwoTone::setAudioThreshold(float value)
@@ -526,6 +618,63 @@ void TwoTone::setVisualizationMode(VisualizationMode mode)
     beatFlashIntensity = 0.0f;
     beatExpandProgress = 0.0f;
     pulsePosition = 0.0f;
+}
+
+// Enable or disable RGB mode for direct color interpolation
+void TwoTone::enableRGBMode(bool enable)
+{
+    setColorTransitionMode(enable ? ColorTransitionMode::RGB_DIRECT : ColorTransitionMode::HSV_SHORTEST_PATH);
+    
+    // Print debug info
+    printf("TwoTone: %s RGB interpolation mode\n", enable ? "Enabled" : "Disabled");
+}
+
+// Update RGB colors from HSV values
+void TwoTone::updateRGBColors()
+{
+    // Convert hue1, saturation, full brightness to RGB
+    hsv_t hsv1 = {hue1, saturation, 1.0f};
+    rgb1 = ColorUtil::hsv2rgb(hsv1);
+    
+    // Convert hue2, saturation, full brightness to RGB
+    hsv_t hsv2 = {hue2, saturation, 1.0f};
+    rgb2 = ColorUtil::hsv2rgb(hsv2);
+    
+    printf("TwoTone: Updated RGB colors from HSV - RGB1(%.2f,%.2f,%.2f), RGB2(%.2f,%.2f,%.2f)\n",
+           rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b);
+}
+
+// Linear interpolation between two RGB colors
+rgb_t TwoTone::lerpRGB(const rgb_t& a, const rgb_t& b, float t) const
+{
+    rgb_t result;
+    
+    // Clamp t to [0,1] range
+    t = std::min(1.0f, std::max(0.0f, t));
+    
+    // Linear interpolation for each color channel
+    result.r = a.r + t * (b.r - a.r);
+    result.g = a.g + t * (b.g - a.g);
+    result.b = a.b + t * (b.b - a.b);
+    
+    return result;
+}
+
+// Set color transition mode
+void TwoTone::setColorTransitionMode(ColorTransitionMode mode)
+{
+    if (transitionMode != mode) {
+        transitionMode = mode;
+        
+        // If switching to RGB mode, make sure RGB colors are updated
+        if (mode == ColorTransitionMode::RGB_DIRECT) {
+            updateRGBColors();
+            
+            printf("TwoTone: Switched to RGB direct interpolation mode\n");
+        } else {
+            printf("TwoTone: Switched to HSV shortest path interpolation mode\n");
+        }
+    }
 }
 
 TwoTone::~TwoTone()

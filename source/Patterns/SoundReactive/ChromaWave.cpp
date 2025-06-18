@@ -1,23 +1,50 @@
 #include "ChromaWave.h"
 #include <math.h>
 
-ChromaWave::ChromaWave()
+// Initialize the static settings with default values
+ChromaWaveSettings ChromaWave::persistentSettings;
+
+ChromaWave::ChromaWave() : twoToneEffect(nullptr)
 {
-    this->twoToneEffect = new TwoTone();
+    // Load settings from persistent storage
+    loadSettings();
+}
+
+// Load settings from persistent storage to local variables
+void ChromaWave::loadSettings()
+{
+    hue1 = persistentSettings.hue1;
+    hue2 = persistentSettings.hue2;
+    attackRate = persistentSettings.attackRate;
+    decayRate = persistentSettings.decayRate;
+    frequencyBand = persistentSettings.frequencyBand;
+    audioCurve = persistentSettings.audioCurve;
+    saturation = persistentSettings.saturation;
+    audioThreshold = persistentSettings.audioThreshold;
+    beatSensitivity = persistentSettings.beatSensitivity;
+    beatReaction = persistentSettings.beatReaction;
+    visualizationMode = persistentSettings.visualizationMode;
+    rgbMode = persistentSettings.rgbMode;
 }
 
 void ChromaWave::init()
 {
+    // Ensure local variables are loaded from persistent settings
+    loadSettings();
+    
+    // Create a new TwoTone effect
+    twoToneEffect = new TwoTone();
+    
     // Initialize the TwoTone effect
     twoToneEffect->init();
     
     // Apply the effect to the engine
     Effect::engine->apply(twoToneEffect);
     
-    // Initialize with default hues
-    twoToneEffect->setHues(hue, hue2);
+    // Apply settings from persistent storage
+    twoToneEffect->setHues(hue1, hue2);
     
-    // Initialize with default audio processing parameters
+    // Initialize audio processing parameters with persisted values
     twoToneEffect->setAttackRate(attackRate);
     twoToneEffect->setDecayRate(decayRate);
     twoToneEffect->setFrequencyBand(static_cast<FrequencyBand>(frequencyBand));
@@ -25,14 +52,75 @@ void ChromaWave::init()
     twoToneEffect->setSaturation(saturation);
     twoToneEffect->setAudioThreshold(audioThreshold);
     
-    // Initialize beat detection parameters
+    // Initialize beat detection parameters with persisted values
     twoToneEffect->setBeatSensitivity(beatSensitivity);
     twoToneEffect->setBeatReaction(beatReaction);
-    twoToneEffect->setVisualizationMode(static_cast<VisualizationMode>(visualizationMode));
+    
+    // Set visualization mode from persisted value
+    VisualizationMode mode;
+    switch(visualizationMode) {
+        case 1: mode = VisualizationMode::BEAT_FLASH; break;
+        case 2: mode = VisualizationMode::BEAT_EXPAND; break;
+        case 3: mode = VisualizationMode::SPECTRUM_FLOW; break;
+        default: mode = VisualizationMode::COLOR_PULSE; break;
+    }
+    twoToneEffect->setVisualizationMode(mode);
+    
+    // Set color interpolation mode
+    twoToneEffect->enableRGBMode(rgbMode);
+    
+    // Set up input manager subscriptions
+    auto& inputManager = FireFly::InputManager::getInstance();
+    
+    // Subscribe to HUE events
+    inputManager.subscribe(FireFly::InputEventType::HUE, [this](const FireFly::InputEvent &event) {
+        if (event.type == FireFly::InputType::VALUE_CHANGE) {
+            // Convert the 0-360 degree value to 0-1 range
+            double hueValue = event.value / 360.0;
+            // Keep hue in 0-1 range
+            if (hueValue > 1.0) hueValue = 1.0;
+            if (hueValue < 0.0) hueValue = 0.0;
+            
+            // Check the hue index to determine which hue to set
+            if (event.index == 0) {
+                // Index 0 is for primary hue
+                printf("ChromaWave - Setting primary hue: %f (index=%d)\n", hueValue, event.index);
+                this->setHue1(hueValue);
+            } else if (event.index == 1) {
+                // Index 1 is for secondary hue
+                printf("ChromaWave - Setting secondary hue: %f (index=%d)\n", hueValue, event.index);
+                this->setHue2(hueValue);
+            } else {
+                printf("ChromaWave - Unknown hue index: %d\n", event.index);
+            }
+        }
+    });
+
+    // Subscribe to SPEED events for decay rate control
+    inputManager.subscribe(FireFly::InputEventType::SPEED, [this](const FireFly::InputEvent &event) {
+        if (event.type == FireFly::InputType::VALUE_CHANGE) {
+            // Speed is a 0-100 value, map to 0.5 - 1.0
+            float decay = event.value / 100.0f; // Normalize to 0-1
+            printf("ChromaWave - Setting decay: %f\n", decay);
+            this->setDecayRate(decay);
+        }
+    });
+
+        // if (event.type == FireFly::InputType::VALUE_CHANGE) {
+        //     // Speed is a 0-100 value, map to 0.1 - 1.0
+        //     float speed = event.value / 1000.0f; // Normalize to 0-1
+        //     printf("ChromaWave - Setting speed: %f\n", speed);
+        //     this->setSpeed(speed);
+        // }
 }
 
 void ChromaWave::run()
 {
+    // Safety check
+    if (!twoToneEffect) {
+        return;
+    }
+    
     // Get audio levels from the microphone
     // We'll pass the raw audio to the effect, and let it process based on its settings
     double lowFreq = Microphone::getLowNormal();
@@ -42,20 +130,28 @@ void ChromaWave::run()
     twoToneEffect->micVal = lowFreq;
 }
 
-void ChromaWave::setHue(double h)
+void ChromaWave::setHue1(double h)
 {
-    // First hue comes from standard hue parameter
-    hue = h;
+    // First hue is the base color
+    hue1 = h;
+    // Update persistent settings
+    persistentSettings.hue1 = h;
+    persistentSettings.userModified = true;
+    
     if (twoToneEffect)
     {
-        twoToneEffect->setHue1(hue);
+        twoToneEffect->setHue1(hue1);
     }
 }
 
-void ChromaWave::setSecondHue(double h)
+void ChromaWave::setHue2(double h)
 {
-    // Second hue is a custom parameter
+    // Second hue is the reactive color
     hue2 = h;
+    // Update persistent settings
+    persistentSettings.hue2 = h;
+    persistentSettings.userModified = true;
+    
     if (twoToneEffect)
     {
         twoToneEffect->setHue2(hue2);
@@ -64,6 +160,10 @@ void ChromaWave::setSecondHue(double h)
 
 void ChromaWave::setBrightness(float b)
 {
+    // Note: We don't have a local brightness variable, it's managed by TwoTone
+    // But we'll mark settings as modified
+    persistentSettings.userModified = true;
+    
     if (twoToneEffect)
     {
         twoToneEffect->baseBrightness = b;
@@ -79,19 +179,16 @@ void ChromaWave::setSpeed(float speed)
         // Map speed (typically 0-1) to reactivity (1.0 - 10.0)
         float reactivity = 1.0f + (speed * 9.0f);
         twoToneEffect->setReactivity(reactivity);
-    }
-}
-
-void ChromaWave::setPeriod(float seconds)
-{
-    if (twoToneEffect)
-    {
-        twoToneEffect->setPeriod(seconds);
+        // We don't persist this directly as it's handled through the reactivity setting
     }
 }
 
 void ChromaWave::setReactivity(float value)
 {
+    // Note: We don't have a local reactivity variable, it's managed by TwoTone
+    // But we'll use persistentSettings to track the value for brightness
+    persistentSettings.userModified = true;
+    
     if (twoToneEffect)
     {
         twoToneEffect->setReactivity(value);
@@ -104,6 +201,9 @@ void ChromaWave::setAttackRate(float value)
 {
     // Store locally for initialization
     attackRate = value;
+    // Update persistent settings
+    persistentSettings.attackRate = value;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -115,6 +215,9 @@ void ChromaWave::setDecayRate(float value)
 {
     // Store locally for initialization
     decayRate = value;
+    // Update persistent settings
+    persistentSettings.decayRate = value;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -126,6 +229,9 @@ void ChromaWave::setFrequencyBand(int bandIndex)
 {
     // Store locally for initialization
     frequencyBand = bandIndex;
+    // Update persistent settings
+    persistentSettings.frequencyBand = bandIndex;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -147,6 +253,9 @@ void ChromaWave::setAudioCurve(int curveIndex)
 {
     // Store locally for initialization
     audioCurve = curveIndex;
+    // Update persistent settings
+    persistentSettings.audioCurve = curveIndex;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -167,6 +276,9 @@ void ChromaWave::setSaturation(float value)
 {
     // Store locally for initialization
     saturation = value;
+    // Update persistent settings
+    persistentSettings.saturation = value;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -178,6 +290,9 @@ void ChromaWave::setAudioThreshold(float value)
 {
     // Store locally for initialization
     audioThreshold = value;
+    // Update persistent settings
+    persistentSettings.audioThreshold = value;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -191,6 +306,9 @@ void ChromaWave::setBeatSensitivity(float value)
 {
     // Store locally for initialization
     beatSensitivity = value;
+    // Update persistent settings
+    persistentSettings.beatSensitivity = value;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -202,6 +320,9 @@ void ChromaWave::setBeatReaction(float value)
 {
     // Store locally for initialization
     beatReaction = value;
+    // Update persistent settings
+    persistentSettings.beatReaction = value;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -213,6 +334,9 @@ void ChromaWave::setVisualizationMode(int modeIndex)
 {
     // Store locally for initialization
     visualizationMode = modeIndex;
+    // Update persistent settings
+    persistentSettings.visualizationMode = modeIndex;
+    persistentSettings.userModified = true;
     
     if (twoToneEffect)
     {
@@ -244,6 +368,28 @@ const char* ChromaWave::getName()
 
 void ChromaWave::release()
 {
-    // Clean up is handled by the TwoTone effect's destructor
-    // Nothing special to clean up here
+    // Set the twoToneEffect pointer to null after the effect is deleted by the EffectEngine
+    // This prevents us from trying to access the deleted effect if we're reinitialized
+    twoToneEffect = nullptr;
+    auto& inputManager = FireFly::InputManager::getInstance();
+    inputManager.unsubscribeAll(FireFly::InputEventType::HUE);
+    inputManager.unsubscribeAll(FireFly::InputEventType::SPEED);
+}
+
+// Toggle RGB interpolation mode
+void ChromaWave::setRGBMode(bool enabled)
+{
+    rgbMode = enabled;
+    
+    // Update persistent settings
+    persistentSettings.rgbMode = enabled;
+    persistentSettings.userModified = true;
+    
+    // Update TwoTone effect if initialized
+    if (twoToneEffect)
+    {
+        twoToneEffect->enableRGBMode(enabled);
+    }
+    
+    printf("ChromaWave: %s RGB interpolation mode\n", enabled ? "Enabled" : "Disabled");
 }
