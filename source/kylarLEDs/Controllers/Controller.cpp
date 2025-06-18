@@ -10,10 +10,6 @@ Controller::Controller(){
     // initPatternButton();
 }
 
-void Controller::givePatternIndex(uint32_t *patternIndex){
-    this->patternIndex = patternIndex;
-}
-
 double Controller::getHue(){
     return hue;
 }

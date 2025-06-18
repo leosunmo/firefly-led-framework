@@ -38,6 +38,7 @@ struct InputEvent {
     InputEventType eventType;    // What parameter was affected
     int32_t value;               // Encoder count, button state, or normalized value (0-1000)
     int inputId;                 // Optional ID for debugging (auto-generated)
+    uint8_t index;               // Index for indexed parameters (like hue)
 };
 
 typedef std::function<void(const InputEvent&)> InputCallback;

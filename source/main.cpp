@@ -1,24 +1,26 @@
 #include "stdio.h"
 #include <vector>
 #include <string>
+#include <map>
 #include "Effects/Effect.h"
 #include "kylarLEDs/LEDInterface/LEDs.h"
 #include "kylarLEDs/EffectEngine/EffectEngine.h"
 #include "kylarLEDs/Controllers/FireFlyV2/FireFlyV2Controller.h"
-#include "kylarLEDs/Communication/UARTManager.h" 
-#include "Patterns/Examples/ExamplePattern.h"
-#include "Patterns/Examples/FireFlies.h"
-#include "Patterns/Examples/FireFliesSame.h"
-#include "Patterns/Wireless/WirelessPattern.h"
+#include "kylarLEDs/Communication/UARTManager.h"
+#include "Patterns/PatternTypes.h" 
+// #include "Patterns/Examples/ExamplePattern.h"
+// #include "Patterns/Examples/FireFlies.h"
+// #include "Patterns/Examples/FireFliesSame.h"
+// #include "Patterns/Wireless/WirelessPattern.h"
 #include "Patterns/SoundReactive/Shakeel.h"
 #include "Patterns/SoundReactive/Bounce.h"
 #include "Patterns/SoundReactive/ShakeelFlash.h"
 #include "Patterns/SoundReactive/ShakeelFlashBall.h"
-#include "Patterns/SoundReactive/SpaceX.h"
-#include "Patterns/SoundReactive/FireV0.h"
-#include "Patterns/SoundReactive/HeartPattern.h"
-#include "Patterns/SoundReactive/CirclesPattern.h"
-#include "Patterns/SoundReactive/Raindrop.h"
+// #include "Patterns/SoundReactive/SpaceX.h"
+// #include "Patterns/SoundReactive/FireV0.h"
+// #include "Patterns/SoundReactive/HeartPattern.h"
+// #include "Patterns/SoundReactive/CirclesPattern.h"
+// #include "Patterns/SoundReactive/Raindrop.h"
 #include "Patterns/SoundReactive/ChromaWave.h"
 #include "kylarLEDs/Utility/ExecTimer.h"
 #include <malloc.h>
@@ -35,27 +37,6 @@ int main(){
         sleep_ms(5000); // Delay for 5 seconds to allow for serial connection
     }
 
-    // // Initialize effect encoder
-    // Encoder *effectEncoder = new Encoder(ENCODER_EFFECT_A, ENCODER_EFFECT_B);
-    // // Initialize effect button
-    // Button *effectButton = new Button(ENCODER_EFFECT_BUTTON);
-
-    // // Initialize encoders
-    // Encoder *hueEncoder = new Encoder(ENCODER_HUE_A, ENCODER_HUE_B);
-    // hueEncoder->setAccumulate(true);
-    // hueEncoder->setRange(0, 359, true); // Hue range from 0 to 359 degrees with wrapping
-    
-    // // Initialize buttons
-    // Button *patternButton = new Button(ENCODER_PATTERN_BUTTON);
-
-    // // Add physical inputs to the InputManager
-    // auto& inputManager = FireFly::InputManager::getInstance();
-    // inputManager.registerEncoder(FireFly::InputEventType::SPEED, effectEncoder);
-    // inputManager.registerButton(FireFly::InputEventType::EFFECT_PUNCH, effectButton);
-    // inputManager.registerEncoder(FireFly::InputEventType::HUE, hueEncoder);
-    // inputManager.registerButton(FireFly::InputEventType::PATTERN, patternButton);
-
-
     // Initialize framework infrastructure
     Controller *ledController = new FireFlyV2Controller();
 
@@ -66,9 +47,9 @@ int main(){
     
     Effect::giveEngine(effectEngine);
     
-    vector<Pattern*> *patterns = new vector<Pattern*>();
-    //Push back all the patterns you want!
-    //ADD YOUR PATTERNS HERE!
+    // Map for direct access to patterns by ID
+    std::map<uint8_t, Pattern*> *patternMap = new std::map<uint8_t, Pattern*>();
+    
     // Example pattern configurations
     BounceConfig config1 = {
         .solidBar = false,
@@ -88,34 +69,51 @@ int main(){
         .maxThickness = 3,
     };
 
-    // Add patterns to the vector
-    patterns->push_back(new ChromaWave());
-    patterns->push_back(new ShakeelFlash());
-    patterns->push_back(new ShakeelFlashBall());
-    patterns->push_back(new Bounce(config1));
+    // Define and register patterns with the map
 
-    // patterns->push_back(new Bounce(config2, effectEncoder, effectButton));
-    // patterns->push_back(new Bounce(config3, effectEncoder, effectButton));
-    // patterns->push_back(new Bounce(true));
-    // patterns->push_back(new Shakeel());
-    // patterns->push_back(new FireV0(false));
-    // patterns->push_back(new FireV0(true));
-    // patterns->push_back(new Raindrop());
-    // patterns->push_back(new SpaceX());
-    // patterns->push_back(new HeartPattern());
-    // patterns->push_back(new CirclesPattern());
+    // ChromaWave - ID 1
+    Pattern* chromaWave = new ChromaWave();
+    patternMap->insert({static_cast<uint8_t>(FireFly::PatternType::CHROMA_WAVE), chromaWave});
 
-
-    //Initialize main loop variables
-    uint32_t numPatterns = patterns->size();
-    uint32_t currentPatternIndex = 0;
-    uint32_t nextPatternIndex = 0;
-    Pattern *currentPattern = patterns->at(currentPatternIndex);
-    Pattern *nextPattern = patterns->at(nextPatternIndex);
+    // ShakeelFlash - ID 2
+    Pattern* shakeelFlash = new ShakeelFlash();
+    patternMap->insert({static_cast<uint8_t>(FireFly::PatternType::SHAKEEL_FLASH), shakeelFlash});
     
-    //Give the ledController access to the nextPatternIndex
-    //Thus it can write to it when its button is pressed and change the pattern
-    ledController->givePatternIndex(&nextPatternIndex);
+    // ShakeelFlashBall - ID 3
+    Pattern* shakeelFlashBall = new ShakeelFlashBall();
+    patternMap->insert({static_cast<uint8_t>(FireFly::PatternType::SHAKEEL_FLASH_BALL), shakeelFlashBall});
+    
+    // Default to the first pattern in the map if available, otherwise use SHAKEEL_FLASH
+    uint8_t defaultPatternId = static_cast<uint8_t>(FireFly::PatternType::SHAKEEL_FLASH);
+    
+    // Make sure the pattern map contains the default pattern
+    if (patternMap->find(defaultPatternId) == patternMap->end() && !patternMap->empty()) {
+        // If default pattern ID isn't in the map, use the first available pattern
+        defaultPatternId = patternMap->begin()->first;
+        printf("Default pattern ID not found, using first available ID: %d\n", defaultPatternId);
+    }
+    
+    uint8_t currentPatternId = defaultPatternId;
+    uint8_t nextPatternId = currentPatternId;
+    
+    // Safety check before accessing the pattern
+    if (patternMap->find(currentPatternId) == patternMap->end()) {
+        printf("ERROR: Initial pattern ID %d not found in pattern map\n", currentPatternId);
+        return 1; // Exit with error
+    }
+    
+    Pattern *currentPattern = patternMap->at(currentPatternId); // Get pattern directly by ID
+    Pattern *nextPattern = currentPattern;
+    
+    // Print available pattern IDs for reference
+    printf("Available pattern IDs:\n");
+    for (auto& pair : *patternMap) {
+        printf("  ID %d: %s\n", pair.first, FireFly::getPatternName(static_cast<FireFly::PatternType>(pair.first)));
+    }
+    
+    // Give the controller access to the pattern selection variables
+    FireFlyV2Controller* ffController = static_cast<FireFlyV2Controller*>(ledController);
+    ffController->givePatternMap(patternMap, &nextPatternId);
 
     //Give the LEDStrips the controller
     //This way the LEDStrip can call the output function to the controller
@@ -147,8 +145,33 @@ int main(){
             printf("total space allocated from system (bytes):       %d\n", mi.arena); // Free space left (in the current block?)
 
         }
-        if(currentPatternIndex == nextPatternIndex){
-            //We are remaining on the same pattern
+        
+        // Check if pattern ID has changed
+        if(currentPatternId != nextPatternId){
+            // Pattern ID has changed, switch to the new pattern
+            currentPattern->release();                      // Finish the current pattern
+            effectEngine->clear();                          // Clear the effects
+            LEDs::clear();                                  // Clear the LEDs
+            LEDs::output();                                 // Output the off LEDs
+            LEDs::useGlobalBrightnessControl(false, NULL);  // Clear any global brightness control
+            
+            // Check if the requested pattern exists in the map
+            if(patternMap->count(nextPatternId) > 0) {
+                printf("Switching from pattern ID %d to pattern ID %d\n", 
+                       currentPatternId, nextPatternId);
+                
+                nextPattern = patternMap->at(nextPatternId); // Get pattern directly by ID
+                currentPattern = nextPattern;               // Set the current pattern to be the next
+                currentPatternId = nextPatternId;           // Update current pattern ID
+                
+                currentPattern->init();                     // Init the new current pattern
+            } else {
+                // Pattern ID not found, fall back to the current pattern
+                printf("Warning: Pattern ID %d not found in pattern map\n", nextPatternId);
+                nextPatternId = currentPatternId;           // Reset to current pattern ID
+            }
+        } else {
+            // No pattern change, continue running current pattern
             timer->start("mainloop");
             currentPattern->run();  // Allow pattern to create effects
             timer->add("currentPattern->run()");
@@ -161,18 +184,6 @@ int main(){
             LEDs::output();         // Output to strip via controller
             timer->add("LEDs::output()");
             if(DEBUG_PRINT_MAIN) timer->print();
-        }else{
-            //We are changing pattern
-            currentPattern->release();                      //Finish the current pattern
-            effectEngine->clear();                          //Clear the effects
-            LEDs::clear();                                  //Clear the LEDs
-            LEDs::output();                                 //Output the off LEDs
-            LEDs::useGlobalBrightnessControl(false, NULL);  //Clear any global brightness control
-            nextPatternIndex %= numPatterns;                //Protect from out of bounds
-            nextPattern = patterns->at(nextPatternIndex);   //Get the next pattern
-            currentPattern = nextPattern;                   //Set the current pattern to be the next
-            currentPatternIndex = nextPatternIndex;         //Set current pattern index to the new one
-            currentPattern->init();                         //Init the new current pattern
         }
     }
     
