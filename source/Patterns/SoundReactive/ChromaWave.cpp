@@ -1,6 +1,67 @@
 #include "ChromaWave.h"
 #include <math.h>
 
+/**
+ * ==================================================================
+ * ChromaWave Pattern - Parameter and Mode Reference
+ * ==================================================================
+ * 
+ * OVERVIEW
+ * --------
+ * ChromaWave is a sound-reactive LED pattern that uses the TwoTone
+ * effect to blend colors based on audio input. It persists settings
+ * between instances and provides a user interface through the
+ * FireFly input system.
+ * 
+ * INTERACTIVE PARAMETERS
+ * ---------------------
+ * hue1: double (0.0-1.0) - Base color shown when audio is quiet
+ *       Controlled via HUE event with index=0
+ *       Persist between pattern instances
+ * 
+ * hue2: double (0.0-1.0) - Reactive color mixed in with increasing audio
+ *       Controlled via HUE event with index=1
+ *       Persist between pattern instances
+ * 
+ * decayRate: float (0.5-1.0) - Controls how quickly effect fades
+ *       Controlled via SPEED event (0-100 mapped to 0.5-1.0)
+ *       Higher values = slower fade
+ *       Persist between pattern instances
+ * 
+ * PERSISTED SETTINGS
+ * -----------------
+ * attackRate: How quickly the effect responds to audio peaks (0.01-0.99)
+ *       Default: 0.4 (lower = faster attack) 
+ * 
+ * frequencyBand: Which frequency band to respond to (0-3)
+ *       0=LOW (bass), 1=MID, 2=HIGH, 3=FULL spectrum
+ *       Default: 0 (LOW)
+ * 
+ * audioCurve: How audio is processed (0-3)
+ *       0=LINEAR, 1=SQUARE, 2=CUBIC, 3=LOGARITHMIC
+ *       Default: 1 (SQUARE)
+ * 
+ * saturation: Color saturation (0.0-1.0)
+ *       Default: 1.0 (full saturation)
+ * 
+ * audioThreshold: Minimum audio level to trigger effects (0.0-0.5)
+ *       Default: 0.01
+ * 
+ * beatSensitivity: How sensitive beat detection is (0.5-5.0)
+ *       Default: 1.5
+ * 
+ * beatReaction: How strongly visuals react to beats (0.0-1.0)
+ *       Default: 0.8
+ * 
+ * visualizationMode: Which visualization to use (0-3)
+ *       0=COLOR_PULSE, 1=BEAT_FLASH, 2=BEAT_EXPAND, 3=SPECTRUM_FLOW
+ *       Default: 0 (COLOR_PULSE)
+ * 
+ * rgbMode: Whether to use RGB direct interpolation (true/false)
+ *       Default: true (enabled for smoother color transitions)
+ * ==================================================================
+ */
+
 // Initialize the static settings with default values
 ChromaWaveSettings ChromaWave::persistentSettings;
 

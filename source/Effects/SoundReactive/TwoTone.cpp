@@ -4,6 +4,73 @@
 #include <algorithm>
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
 
+/**
+ * ==================================================================
+ * TwoTone Effect - Parameter and Mode Reference
+ * ==================================================================
+ * 
+ * CORE PARAMETERS
+ * ---------------
+ * hue1: float (0.0-1.0) - Base color (displayed when audio is quiet)
+ *       Default: 0.0 (red)
+ *       
+ * hue2: float (0.0-1.0) - Reactive color (mixed in as audio increases)
+ *       Default: 0.66 (blue)
+ *       
+ * baseBrightness: double (0.05-0.95) - Baseline brightness level
+ *       Default: 0.9
+ *       
+ * saturation: float (0.0-1.0) - Color saturation
+ *       Default: 1.0 (full saturation)
+ *       
+ * pulseReactivity: float (1.0-10.0) - How strongly colors respond to audio
+ *       Default: 5.0 (higher = more responsive)
+ *       
+ * attackRate: float (0.01-0.99) - How quickly effect responds to audio peaks
+ *       Default: 0.4 (lower = faster attack)
+ *       
+ * decayRate: float (0.5-1.0) - How slowly effect fades when audio decreases
+ *       Default: 0.95 (higher = slower decay)
+ *       
+ * audioThreshold: float (0.0-0.5) - Minimum audio level to trigger effects
+ *       Default: 0.01
+ *       
+ * beatSensitivity: float (0.5-5.0) - How sensitive beat detection is
+ *       Default: 1.5 (higher = more sensitive)
+ *       
+ * beatReaction: float (0.0-1.0) - How strongly visuals react to beats
+ *       Default: 0.8
+ *       
+ * MODES
+ * -----
+ * FrequencyBand:
+ *  - LOW: Bass frequencies
+ *  - MID: Mid-range frequencies
+ *  - HIGH: High frequencies (treble)
+ *  - FULL: Full spectrum (average of all bands)
+ *  Default: LOW
+ * 
+ * AudioCurve:
+ *  - LINEAR: Raw audio input
+ *  - SQUARE: Audio input squared (more responsive to peaks)
+ *  - CUBIC: Audio input cubed (very responsive to peaks)
+ *  - LOGARITHMIC: Log response (more detail in quiet sounds)
+ *  Default: SQUARE
+ * 
+ * VisualizationMode:
+ *  - COLOR_PULSE: Standard color pulsing between hue1 and hue2
+ *  - BEAT_FLASH: Flash on beat detection (reduces saturation)
+ *  - BEAT_EXPAND: Expand color transition on beat detection
+ *  - SPECTRUM_FLOW: Flow through spectrum based on frequencies
+ *  Default: COLOR_PULSE
+ * 
+ * ColorTransitionMode:
+ *  - HSV_SHORTEST_PATH: Traditional HSV interpolation
+ *  - RGB_DIRECT: Direct RGB interpolation for smoother transitions
+ *  Default: HSV_SHORTEST_PATH (RGB_DIRECT enabled by default in ChromaWave)
+ * ==================================================================
+ */
+
 void TwoTone::init()
 {
     pixels = new std::vector<SoundPixel *>();
