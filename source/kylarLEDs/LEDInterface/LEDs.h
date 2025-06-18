@@ -12,7 +12,8 @@ class LEDs {
         static void apply(); // Applies all of the changes from the effects for all strips
         static void setNum(uint16_t num); // Sets all LED strip lengths
         static void setHSV(int i, hsv_t color);// Sets HSV for an LED on all strips
-        static void setRGB(int i, rgb8_t color);// Sets HSV for an LED on all strips
+        static void setRGB(int i, rgb8_t color);// Sets RGB for an LED on all strips (8-bit values)
+        static void setRGB(int i, rgb_t color); // Sets RGB for an LED on all strips (floating-point values)
         static void giveController(Controller * controller); // give the strips the controller reference
         static void useGlobalBrightnessControl(bool enable, double* globalBrightness); // Used for sound reactive patterns that want to globally set brightness.
     private:
