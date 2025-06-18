@@ -4,6 +4,8 @@
 #include "hardware/irq.h"
 #include "hardware/pwm.h"
 #include <stdio.h>
+#include <vector>
+#include <algorithm>
 #include "pico/time.h"
 #include "../../../config.h"
 
@@ -38,15 +40,70 @@ FireFlyV2Controller::FireFlyV2Controller()
 
     setStatusLED(10);
 
-    // Set up the pattern index increment on button press
+    // Set up the pattern selection
     auto &inputManager = FireFly::InputManager::getInstance();
     inputManager.subscribe(FireFly::InputEventType::PATTERN, [this](const FireFly::InputEvent &event)
                            {
-                            if (event.value == 1) // Button pressed
-                            {
-            printf("Pattern button pressed\n");
-    
-            (*this->patternIndex)++; } });
+                            if (event.type == FireFly::InputType::BUTTON_PRESS) {
+                                // If it's a physical button press, move to the next pattern in the map
+                                printf("Pattern button pressed - moving to next pattern\n");
+                                
+                                if (this->patternMap != nullptr && this->patternId != nullptr) {
+                                    // Get current pattern ID
+                                    uint8_t currentId = *this->patternId;
+                                    
+                                    // Get all IDs from the map in a vector for reliable ordering
+                                    std::vector<uint8_t> patternIds;
+                                    for (const auto& pair : *this->patternMap) {
+                                        patternIds.push_back(pair.first);
+                                    }
+                                    
+                                    // Sort the IDs to ensure consistent cycling regardless of map traversal order
+                                    std::sort(patternIds.begin(), patternIds.end());
+                                    
+                                    if (patternIds.empty()) {
+                                        printf("No patterns available in map\n");
+                                        return;
+                                    }
+                                    
+                                    // Find the current ID in our sorted list
+                                    size_t currentIndex = 0;
+                                    bool found = false;
+                                    
+                                    for (size_t i = 0; i < patternIds.size(); i++) {
+                                        if (patternIds[i] == currentId) {
+                                            currentIndex = i;
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // If current ID wasn't found or we're at the end, go to the first pattern
+                                    size_t nextIndex = found ? (currentIndex + 1) % patternIds.size() : 0;
+                                    uint8_t nextId = patternIds[nextIndex];
+                                    
+                                    // Set the new pattern ID
+                                    *this->patternId = nextId;
+                                    printf("Moving to pattern ID %d (index %zu of %zu)\n", nextId, nextIndex, patternIds.size());
+                                }
+                            } else if (event.type == FireFly::InputType::VALUE_CHANGE) {
+                                // If it's a direct value change (from UART), try to find the pattern by ID
+                                printf("Pattern selection event - requested pattern ID %d\n", event.value);
+                                
+                                if (this->patternMap != nullptr && this->patternId != nullptr) {
+                                    // Set the pattern ID directly
+                                    uint8_t requestedId = static_cast<uint8_t>(event.value);
+                                    
+                                    // Check if the pattern ID exists in our map
+                                    if (this->patternMap->find(requestedId) != this->patternMap->end()) {
+                                        printf("Pattern ID %d found in map\n", requestedId);
+                                        *this->patternId = requestedId;
+                                    } else {
+                                        printf("Warning: Pattern ID %d not found in map\n", requestedId);
+                                    }
+                                }
+                            }
+                           });
 }
 
 /**
@@ -264,9 +321,10 @@ void FireFlyV2Controller::initBrightness()
     this->analogPot = new Potentiometer(pot_gpio, 1);
 }
 
-void FireFlyV2Controller::givePatternIndex(uint32_t *patternIndex)
+void FireFlyV2Controller::givePatternMap(std::map<uint8_t, Pattern*>* map, uint8_t* nextPatternId)
 {
-    this->patternIndex = patternIndex;
+    this->patternMap = map;
+    this->patternId = nextPatternId;
 }
 
 void FireFlyV2Controller::initMicrophone()

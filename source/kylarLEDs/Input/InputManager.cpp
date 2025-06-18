@@ -86,7 +86,8 @@ void InputManager::handleEncoderChange(int inputId, InputEventType eventType, in
         .type = InputType::ENCODER_ROTATION,
         .eventType = eventType,
         .value = count,
-        .inputId = inputId
+        .inputId = inputId,
+        .index = 0
     };
     
     triggerCallbacks(event);
@@ -106,7 +107,8 @@ void InputManager::handleButtonPress(int inputId, InputEventType eventType, int 
         .type = state ? InputType::BUTTON_PRESS : InputType::BUTTON_RELEASE,
         .eventType = eventType,
         .value = state,
-        .inputId = inputId
+        .inputId = inputId,
+        .index = 0
     };
     
     triggerCallbacks(event);
@@ -120,14 +122,43 @@ void InputManager::processUARTMessage(const UARTMessage& msg) {
     
     // Map UARTMessage command types to event types
     switch (msg.cmdType) {
+        case CommandType::HUE: {
+            // Extract the index from the upper 16 bits and the hue value from the lower 16 bits
+            uint8_t index = (msg.value >> 16) & 0xFF;
+            uint16_t hueValue = msg.value & 0xFFFF;
+            
+            auto it = uartCommandToEventTypeMap.find(msg.cmdType);
+            if (it != uartCommandToEventTypeMap.end()) {
+                eventType = it->second;
+                value = static_cast<int32_t>(hueValue);
+                printf("UART Hue command received: index=%d, hue=%d°\n", index, hueValue);
+            } else {
+                printf("Error: No event type mapping for UART command type %d\n", 
+                       static_cast<int>(msg.cmdType));
+                validCommand = false;
+            }
+            break;
+        }
         case CommandType::BRIGHTNESS:
-        case CommandType::HUE:
-        case CommandType::PATTERN:
         case CommandType::PUNCH:
         case CommandType::SPEED: {
             auto it = uartCommandToEventTypeMap.find(msg.cmdType);
             if (it != uartCommandToEventTypeMap.end()) {
                 eventType = it->second;
+            } else {
+                printf("Error: No event type mapping for UART command type %d\n", 
+                       static_cast<int>(msg.cmdType));
+                validCommand = false;
+            }
+            break;
+        }
+        
+        case CommandType::PATTERN: {
+            // Special handling for PATTERN command to directly select a pattern
+            auto it = uartCommandToEventTypeMap.find(msg.cmdType);
+            if (it != uartCommandToEventTypeMap.end()) {
+                eventType = it->second;
+                printf("UART Pattern command received: switching to pattern %d\n", value);
             } else {
                 printf("Error: No event type mapping for UART command type %d\n", 
                        static_cast<int>(msg.cmdType));
@@ -161,7 +192,8 @@ void InputManager::processUARTMessage(const UARTMessage& msg) {
         eventValues[eventType] = value;
         
         // For button-related event types, use button press/release input types
-        if (isButtonEventType(eventType) || msg.cmdType == CommandType::PUNCH) {
+        if ((isButtonEventType(eventType) || msg.cmdType == CommandType::PUNCH) && msg.cmdType != CommandType::PATTERN) {
+            // PATTERN is excluded from this logic when sent via UART to enable direct pattern selection
             // Interpret value as button state: 1=pressed, 0=released
             bool isPressed = (value != 0);
             type = isPressed ? InputType::BUTTON_PRESS : InputType::BUTTON_RELEASE;
@@ -169,11 +201,17 @@ void InputManager::processUARTMessage(const UARTMessage& msg) {
         }
         
         // Create and trigger event
+        uint8_t hueIndex = 0;
+        if (msg.cmdType == CommandType::HUE) {
+            hueIndex = static_cast<uint8_t>((msg.value >> 16) & 0xFF);
+        }
+        
         InputEvent event = {
             .type = type,
             .eventType = eventType,
             .value = value,
-            .inputId = 0  // 0 indicates UART source
+            .inputId = 0,  // 0 indicates UART source
+            .index = hueIndex
         };
         
         triggerCallbacks(event);
@@ -208,9 +246,9 @@ int32_t InputManager::getValue(InputEventType eventType) const {
 }
 
 bool InputManager::isButtonEventType(InputEventType eventType) const {
-    // List of event types that represent button interactions
-    return (eventType == InputEventType::EFFECT_PUNCH || 
-            eventType == InputEventType::PATTERN);
+    // PATTERN can be either a button press or a direct value selection depending on the source
+    // EFFECT_PUNCH is always a button interaction
+    return (eventType == InputEventType::EFFECT_PUNCH);
     
     // Add any other button event types as needed
 }

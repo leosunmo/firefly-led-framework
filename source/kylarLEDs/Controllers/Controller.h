@@ -4,14 +4,12 @@
 class Controller {
     public:
         Controller();
-        virtual void givePatternIndex(uint32_t *patternIndex);
         virtual void outputLEDs(uint8_t strip, uint8_t *leds, uint32_t N) = 0; // leds is an array, N is the length
         virtual double getHue();
         virtual double getBrightness();
         virtual uint64_t getCurrentTimeMillis() = 0;
         virtual uint64_t getCurrentTimeMicros() = 0;
     protected:
-        uint32_t *patternIndex = 0;
         double hue = 0;
         double brightness = 0.5;
         virtual void initCommunication() = 0;

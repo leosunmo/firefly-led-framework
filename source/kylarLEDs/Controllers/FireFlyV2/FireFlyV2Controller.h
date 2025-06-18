@@ -8,6 +8,8 @@
 #include "../../Utility/Timing.h"
 #include "../../Communication/UARTManager.h"
 #include "../../Input/InputManager.h"
+#include <map>
+#include "../../../Patterns/Pattern.h"
 
 #define PX_PINS 3
 #define UART_BAUD_RATE 19200
@@ -31,7 +33,7 @@ class FireFlyV2Controller : public Controller {
         double getHue();
         double getBrightness();
         static void handleDMA();
-        void givePatternIndex(uint32_t *patternIndex);
+        void givePatternMap(std::map<uint8_t, Pattern*>* map, uint8_t* nextPatternId);
     protected:
         void initCommunication();
         void initBrightness(); // Change the brightness via potentiometer
@@ -66,4 +68,8 @@ class FireFlyV2Controller : public Controller {
         Potentiometer *analogPot;
         Timing *timing;
         Microphone *microphone;
+        
+        // Pattern management
+        uint8_t *patternId = nullptr;
+        std::map<uint8_t, Pattern*>* patternMap = nullptr;
 };
