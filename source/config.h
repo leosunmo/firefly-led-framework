@@ -133,6 +133,7 @@
 #define DEBUG_PRINT_MIC_TIMING 0
 #define DEBUG_PRINT_FLASH 0
 #define DEBUG_PRINT_OTHER 0
+#define DEBUG_PRINT_UART 0
 
 ////////////////////////////////////////////////////////////
 /////////                MISC                   ////////////
