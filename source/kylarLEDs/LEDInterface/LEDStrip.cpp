@@ -18,14 +18,32 @@ LEDStrip::LEDStrip(uint8_t strip){
 
 
 void LEDStrip::setRGB(int index, rgb_t rgb){
-    // set RGB is discontinued, HSV is superior
-    // if(index >= NUM_LEDS){
-    //     return;
-    // }
-    // rgb.r = ColorUtil::sanitizeH(rgb.r);
-    // rgb.g = ColorUtil::sanitizeH(rgb.g);
-    // rgb.b = ColorUtil::sanitizeH(rgb.b);
-    // changesArray[index]->combine(rgb);
+    // Handle index wrapping for out-of-bounds, same as setHSV
+#ifdef LEDS_OFFSET
+    index += LEDS_OFFSET;
+#endif
+    if (index >= NUM_LEDS) {
+        index = index % NUM_LEDS;
+    } else if (index < -NUM_LEDS) {
+        index = index % NUM_LEDS;
+        index += NUM_LEDS;
+    } else if (index < 0) {
+        index += NUM_LEDS;
+    }
+    
+    // Sanitize RGB values to ensure they're in the [0,1] range
+    rgb.r = ColorUtil::sanitizeSV(rgb.r);
+    rgb.g = ColorUtil::sanitizeSV(rgb.g);
+    rgb.b = ColorUtil::sanitizeSV(rgb.b);
+    
+    // Convert to 8-bit RGB
+    rgb8_t rgb8;
+    rgb8.r = static_cast<uint8_t>(rgb.r * 255);
+    rgb8.g = static_cast<uint8_t>(rgb.g * 255);
+    rgb8.b = static_cast<uint8_t>(rgb.b * 255);
+    
+    // Apply to the changes array
+    changesArray[index]->combine(rgb8);
 }
 
 
@@ -85,6 +103,8 @@ void LEDStrip::setRGBUnprotected(int index, rgb8_t rgb8){
         index += NUM_LEDS;
     }
 #endif
+    // If we're in a performance-critical section where sanitization has already been done,
+    // apply directly to the changes array
     changesArray[index]->combine(rgb8);
 }
 
