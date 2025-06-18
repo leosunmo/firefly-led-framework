@@ -47,10 +47,27 @@ void LEDs::setHSV(int i, hsv_t color){
     }
 }
 
-// Sets rgb for all strips
+// Sets rgb for all strips using 8-bit RGB values (range 0-255)
 void LEDs::setRGB(int i, rgb8_t color){
+    // Using setRGBUnprotected is still valid here since the index will be handled
+    // by each strip and we're passing 8-bit RGB values that don't need conversion
     for(LEDStrip *strip : *strips){
-        strip->setRGBUnprotected(i, color);  // This skips the HSV conversion, which saves time
+        strip->setRGBUnprotected(i, color);  // This skips HSV conversion and additional bounds checking
+    }
+}
+
+// Sets rgb for all strips using floating-point RGB values (range 0.0-1.0)
+void LEDs::setRGB(int i, rgb_t color){
+    // Handle global brightness if enabled
+    if(ledsUseGlobalBrightness){
+        color.r *= (*ledsGlobalBrightness);
+        color.g *= (*ledsGlobalBrightness);
+        color.b *= (*ledsGlobalBrightness);
+    }
+    
+    // Apply to all strips using the full protected method
+    for(LEDStrip *strip : *strips){
+        strip->setRGB(i, color);
     }
 }
 
