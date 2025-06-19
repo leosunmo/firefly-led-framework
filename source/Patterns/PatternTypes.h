@@ -15,6 +15,7 @@ enum class PatternType : uint8_t {
     CHROMA_WAVE = 1,
     SHAKEEL_FLASH = 2,
     SHAKEEL_FLASH_BALL = 3,
+    FLASH = 4,
     
     // Fire-themed patterns (10-19)
     FIRE_FLIES = 10,
