@@ -22,6 +22,7 @@
 // #include "Patterns/SoundReactive/CirclesPattern.h"
 // #include "Patterns/SoundReactive/Raindrop.h"
 #include "Patterns/SoundReactive/ChromaWave.h"
+#include "Patterns/Basic/Flash.h"
 #include "kylarLEDs/Utility/ExecTimer.h"
 #include <malloc.h>
 #include "pico/time.h"
@@ -82,6 +83,10 @@ int main(){
     // ShakeelFlashBall - ID 3
     Pattern* shakeelFlashBall = new ShakeelFlashBall();
     patternMap->insert({static_cast<uint8_t>(FireFly::PatternType::SHAKEEL_FLASH_BALL), shakeelFlashBall});
+    
+    // Flash - ID 4
+    Pattern* flash = new Flash();
+    patternMap->insert({static_cast<uint8_t>(FireFly::PatternType::FLASH), flash});
     
     // Default to the first pattern in the map if available, otherwise use SHAKEEL_FLASH
     uint8_t defaultPatternId = static_cast<uint8_t>(FireFly::PatternType::SHAKEEL_FLASH);
