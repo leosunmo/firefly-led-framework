@@ -22,6 +22,7 @@ SingleTime* SingleTime::init(single_time_t blueprint){
     profile.Trise = blueprint.Trise;
     profile.Thold = blueprint.Thold;
     profile.Tfall = blueprint.Tfall;
+    profile.exp_dropoff = blueprint.exp_dropoff;
     initialized = 1;
     ID = profile.index;
     return this;
@@ -50,6 +51,9 @@ void SingleTime::run(){
     }else if(time-profile.Toffset-profile.Trise-profile.Thold < profile.Tfall){
         // We are in falling phase
         double brightness = 1.0 - (time - profile.Toffset-profile.Trise - profile.Thold)/(double)profile.Tfall;
+        if (profile.exp_dropoff) {
+            brightness = brightness * brightness;
+        }
         color.v *= brightness;
     }else{
         done = 1;

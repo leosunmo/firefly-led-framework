@@ -26,6 +26,10 @@ void EffectEngine::queueApply(Effect *effect) {
 }
 
 void EffectEngine::run() {
+    if(DEBUG_PRINT_MEMORY){
+        printf("Effects before run: %zu\n", effects.size());
+        printf("EffectsQueue before run: %zu\n", effectsQueue.size());
+    }
     // This function essentially just calls run on every effect
     // It will also remove the effects that are "done"
     std::vector<Effect *>::iterator it = effects.begin();

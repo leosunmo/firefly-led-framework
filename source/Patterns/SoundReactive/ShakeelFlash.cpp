@@ -3,82 +3,62 @@
 #include <math.h>
 #include "../../kylarLEDs/Controllers/Sensors/Microphone/Microphone.h"
 
+void ShakeelFlash::init()
+{
+    printf("Initialized ShakeelFlash\n");
+    bar = new FullBar();
+    bar->init();
+    punchTimer = new Timing();
+
+    // Register with InputManager instead of directly with encoder
+    auto& inputManager = FireFly::InputManager::getInstance();
+    
 
 
-void ShakeelFlash::init(){
-    pixels = new std::vector<SoundPixel*>();
-    int stripLen = LEDs::strip(0)->num();
-    for(int i = 0; i < stripLen; i++){
-        SoundPixel * eff = new SoundPixel();
-        //printf("sound pixel size = %d\n", sizeof(SoundPixel));
-        eff->i = i;
-        eff->hue = 0.0;
-        eff->strip = 0;
-        Effect::engine->apply(eff);
-        pixels->push_back(eff);
-    }
-
-    // A second loop for a second strip
-    // for(int i = 0; i < stripLen; i++){
-    //     SoundPixel * eff = new SoundPixel();
-    //     //printf("sound pixel size = %d\n", sizeof(SoundPixel));
-    //     eff->i = i;
-    //     eff->hue = 0.5;
-    //     eff->strip = 1;
-    //     Effect::engine->apply(eff);
-    //     pixels->push_back(eff);
-    // }
-
-    secTimer = new Timing();
-    avgTimer = new Timing();
-    valTimer = new Timing();
+    // Subscribe to effect encoder events
+    inputManager.subscribe(FireFly::InputEventType::EFFECT_PUNCH, [this](const FireFly::InputEvent& event) {
+        printf("Encoder event: %d\n", event.value);
+        if (event.value > 0) {
+            // Reset the punch timer
+            punchTimer->reset();
+            punch = true;
+        } });
 }
 
-void ShakeelFlash::run(){
-    double micVal = pow(Microphone::getLowNormal(),2) ;
-    static double hueAdd = 0;
-    static double brightness = 0;
-    double seconds = secTimer->takeSeconds();
-    int avgLoops = 0;
-    // Color movement
-    //printf("micTimer = %d ... %f\n", micTimer->timerMs(), micTimer->takeSeconds());
-    double micAdd = micVal / 50; // trying to even out timing
-    // printf("avgTimer = %d ... %d\n", avgTimer->timerMs());//, avgTimer->takeMsEvery(25));
-    avgLoops = avgTimer->takeMsEvery(1);
-    for(int i = 0; i < avgLoops; i++){
-        hueAdd = (hueAdd*100.0 + micAdd )/101.0;
-    }
-    
-    if(micAdd > hueAdd){
-        hueAdd = micAdd;
+void ShakeelFlash::run()
+{
+    double micVal = pow(Microphone::getLowNormal(), 2);
+    bar->micVal = micVal;
+    bar->baseBrightness = baseBrightness;
+    // If the punch button is pressed, lower reactivity threshold
+    if (punch)
+    {
+        // Let the punch run for a half second
+        if (punchTimer->timerMs() < 5000)
+        {
+            bar->brightness += 0.9; // Boost brightness
+            bar->smoothingMicVal = 20; // Reset smoothing to a lower value
+        }
+        else
+        {
+            punch = false; // Reset the punch state
+
+            // Reset the secTimer so hueAdd doesn't flash forward.
+            bar->resetSecTimer();
+            bar->brightness = baseBrightness; // Reset brightness to base level
+            bar->smoothingMicVal = 50; // Reset smoothing to a lower value
+        }
     }
 
 
-    // Brightness
-    double proposedBrightness = 0.1+(0.9*micVal);
-    //printf("valTimer = %d ... %d\n", valTimer->timerMs(), valTimer->takeMsEvery(100));
-    avgLoops = valTimer->takeMsEvery(1);
-    for(int i = 0; i < avgLoops; i++){
-        brightness = (brightness*200.0 + proposedBrightness)/201.0;
-    }
-    
-    if(proposedBrightness > brightness){
-        brightness = proposedBrightness;
-    }
-    
-
-
-
-    for(SoundPixel *pixel : *pixels){
-        pixel->brightness = brightness;
-        pixel->micVal = micVal;
-        pixel->hueAdd = hueAdd * seconds*100.0;
-    }
+    bar->run();
 }
 
-void ShakeelFlash::release(){
-
-    delete(secTimer);
-    delete(avgTimer);
-    delete(pixels);
+void ShakeelFlash::release()
+{
+    // Unsubscribe from input events instead of clearing callbacks directly
+    auto& inputManager = FireFly::InputManager::getInstance();
+    inputManager.unsubscribeAll(FireFly::InputEventType::EFFECT_PUNCH);
+    delete (punchTimer);
+    delete(bar);
 }

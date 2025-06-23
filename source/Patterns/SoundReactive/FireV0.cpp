@@ -8,6 +8,7 @@
 FireV0::~FireV0() {}
 
 void FireV0::init(){
+    printf("Initialized FireV0 with soundreactive: %s\n", useSound ? "true" : "false");
     // FireV0Logo *FireV0_logo = new FireV0Logo();
     // FireV0_logo->init();
     //Effect::engine->apply(FireV0_logo);

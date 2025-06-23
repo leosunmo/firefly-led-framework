@@ -41,6 +41,14 @@ double Microphone::getLowFreqCenter(){
     }
     
 }
+double Microphone::getMidFreqCenter(){
+    if(initialized){
+        return get_freq_data()->mid_freq_center;
+    } else {
+        return 0;
+    }
+    
+}
 double Microphone::getEnergy(){
     if(initialized){
         return get_freq_data()->freq_energy;
@@ -52,6 +60,14 @@ double Microphone::getEnergy(){
 double Microphone::getLowEnergy(){
     if(initialized){
         return get_freq_data()->low_freq_energy;
+    } else {
+        return 0;
+    }
+    
+}
+double Microphone::getMidEnergy(){
+    if(initialized){
+        return get_freq_data()->mid_freq_energy;
     } else {
         return 0;
     }
@@ -69,6 +85,15 @@ double Microphone::getHighEnergy(){
 double Microphone::getLowNormal(){
     if(initialized){
         return get_sound_profile()->low_normal_normal;
+    } else {
+        return 0;
+    }
+    
+}
+
+double Microphone::getMidNormal(){
+    if(initialized){
+        return get_sound_profile()->mid_normal_normal;
     } else {
         return 0;
     }

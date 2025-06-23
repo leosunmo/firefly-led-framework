@@ -5,13 +5,14 @@
 
 
 void Ben::init(){
+    printf("Initialized Ben\n");
     int stripLen = LEDs::strip(0)->num();
     float symmetryPoint = stripLen/2;
 }
 
 void Ben::run(){
     double micVal = Microphone::getLowNormal();
-    printf("Mic val: %f\n",micVal);
+    // printf("Mic val: %f\n",micVal);
     if(micVal > 0.95) {
         printf("Mic val > 0.95\n");
         FireFly *leftFly = new FireFly();

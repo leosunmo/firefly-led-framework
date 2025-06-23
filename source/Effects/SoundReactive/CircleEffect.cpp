@@ -4,6 +4,7 @@
 
 void CircleEffect::init(){
     // initialize vector pixels
+    printf("Initialized CircleEffect\n");
     pixels = new std::vector<uint8_t>();
     
 }

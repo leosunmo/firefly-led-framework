@@ -26,23 +26,55 @@
     1. Go to the build folder and get the "firefly.uf2" file.
     2. Follow instructions for "Upload to Pico"
 
+## Prerequisites
+### Linux (WIP, some stuff missing)
+Raspberry Pi Pico SDK (https://github.com/raspberrypi/pico-sdk?tab=readme-ov-file#unix-command-line)
 
-## Components
-    1. Pico
-        a. https://vilros.com/products/raspberry-pi-pico
-    2. Potentiometer
-        a. https://www.mouser.com/ProductDetail/652-PTV09A-4020FB104
-    3. Encoder
-        a. https://www.mouser.com/ProductDetail/652-PEC12R-4020F-S24
-    4. USBC
-        a. https://www.mouser.com/ProductDetail/GCT/USB4125-GF-A-0190
-    5. PDM Mic
-        a. https://www.mouser.com/ProductDetail/CUI-Devices/CMM-4737DT-26186-TR
-    6. Resistors - 0805 10K Ohm (for Encoder)
-        a. https://www.mouser.com/ProductDetail/Xicon/260-10K-RC
-    7. Capacitors - 0805 0.10 uF (for Encoder)
-        a. https://www.mouser.com/ProductDetail/KEMET/C0805C104M5RAC
+Install all the dependencies for the SDK:
+ ```
+sudo apt install cmake python3 build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+```
+The Pico SDK will now be able to be downloaded and built automatically thanks to the 
+`PICO_SDK_FETCH_FROM_GIT` option in `CMakeLists.txt`. This will download the SDK from GitHub and build it.
 
+
+## Building
+To build, simply run make in the root of the project:
+```
+make
+```
+
+## Flashing
+Plug in the device while holding the BOOT button. This will mount it as a USB device whihc allows you to copy the `.uf2` file to the device. Once you have copied the file, the device will reboot and start running the code.
+
+Alternatively if it's already plugged-in, you can hold the BOOT button while pressing the RST button. This will restart the device and mount it as a USB device.
+
+Now you just need to copy the file. Mount point might differ depending on your system.
+```
+cp build/firefly.uf2 /media/$USER/RPI-RP2
+```
+
+### Mounting the Pico
+If for some reason the Pico doesn't mount automatically, you can try to mount it manually. The mount point might differ depending on your system.
+```
+udisksctl mount -b /dev/sda1
+```
+Or install `udiskie`.
+```
+sudo apt install udiskie
+```
+
+## Connecting to the Pico
+### Linux:
+    1. Plug in the Pico
+    2. Open a terminal
+    3. Type "ls /dev/ttyACM*"
+        - This should show you the port that the Pico is on, usually "/dev/ttyACM0"
+    4. Use this port to connect to the Pico in your terminal
+        - Example: "sudo cat /dev/ttyACM0"
+    5. You can also use a serial terminal program like "screen" or "minicom"
+    6. Example: "screen /dev/ttyACM0 115200"
+        - This will open a serial terminal to the Pico at 115200 baud
 
 ## Windows:
     Getting started:
@@ -77,6 +109,24 @@
     SDK: https://raspberrypi.github.io/pico-sdk-doxygen/index.html
     C: https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf
     RP2040: https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf
+
+## Hardware
+### Components
+    1. Pico
+        a. https://vilros.com/products/raspberry-pi-pico
+    2. Potentiometer
+        a. https://www.mouser.com/ProductDetail/652-PTV09A-4020FB104
+    3. Encoder
+        a. https://www.mouser.com/ProductDetail/652-PEC12R-4020F-S24
+    4. USBC
+        a. https://www.mouser.com/ProductDetail/GCT/USB4125-GF-A-0190
+    5. PDM Mic
+        a. https://www.mouser.com/ProductDetail/CUI-Devices/CMM-4737DT-26186-TR
+    6. Resistors - 0805 10K Ohm (for Encoder)
+        a. https://www.mouser.com/ProductDetail/Xicon/260-10K-RC
+    7. Capacitors - 0805 0.10 uF (for Encoder)
+        a. https://www.mouser.com/ProductDetail/KEMET/C0805C104M5RAC
+
 
 
 ## LED Library Architecture

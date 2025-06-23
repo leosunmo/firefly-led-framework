@@ -16,15 +16,16 @@ include(pico_sdk_import.cmake)
 
 
 # This is only for pico w
-message("Running makefsdata python script")
-execute_process(COMMAND
-    python3 makefsdata.py
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-)
+# message("Running makefsdata python script")
+# execute_process(COMMAND
+#     python3 makefsdata.py
+#     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+# )
 
 # Define ARM_CPU, CMSIS ROOT and DSP to use CMSIS-DSP
 set(ARM_CPU "cortex-m0plus")
-set(PICO_BOARD pico_w) # Remove for just normal pico
+# set(PICO_BOARD pico_w) # Remove for just normal pico
+set(PICO_BOARD pico)
 set(ROOT ${CMAKE_CURRENT_LIST_DIR}/source/kylarLEDs/Controllers/Sensors/Microphone/pdm_mic/CMSIS_5)
 set(DSP ${ROOT}/CMSIS/DSP)
 
@@ -86,11 +87,11 @@ target_link_libraries(  firefly
                         CMSISDSPComplexMath 
                         CMSISDSPFastMath 
                         CMSISDSPBasicMath
-                        pico_cyw43_arch_lwip_poll # pico w only
-                        pico_lwip_http # pico w only
-                        pico_lwip_mqtt # mqtt client
-                        pico_lwip # for lwip init
-                        pico_lwip_mbedtls
+                        # pico_cyw43_arch_lwip_poll # pico w only
+                        # pico_lwip_http # pico w only
+                        # pico_lwip_mqtt # mqtt client
+                        # pico_lwip # for lwip init
+                        # pico_lwip_mbedtls
                         pico_mbedtls
 )
 

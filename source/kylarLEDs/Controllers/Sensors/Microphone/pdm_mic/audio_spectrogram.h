@@ -15,7 +15,7 @@
 #define FFT_SIZE          2048
 #define FFT_MAG_SIZE      FFT_SIZE/2
 #define INPUT_BUFFER_SIZE 1024
-#define INPUT_SHIFT       4 // 2 // TODO: Replace this with something more adjustable...
+#define INPUT_SHIFT       2 // 4 // TODO: Replace this with something more adjustable...
 #define FFT_BINS_SKIP     0
 #define FFT_MAG_MAX       2000.0
 #endif
@@ -39,11 +39,13 @@ typedef enum{
 typedef struct{
     // We know the centers, and can track their movement
     double high_freq_center;
+    double mid_freq_center;
     double low_freq_center;
     double freq_center;
 
     // We know the energies, this is how loud it is;
     double high_freq_energy;
+    double mid_freq_energy;
     double low_freq_energy;
     double freq_energy;
 } freq_data_t;
@@ -57,10 +59,18 @@ typedef struct{
     double low_normal_max;
     double low_normal_normal;   // This is the best to use 0 - 1
 
+    double mid_min;
+    double mid_max;
+    double mid_avg;
+    double mid_normal;  //Current value of mid - normalized 0 - 1 with min and max
+    double mid_normal_min;
+    double mid_normal_max;
+    double mid_normal_normal;   // This is the best to use 0 - 1
+
     double high_min;
     double high_max;
     double high_avg;
-    double high_normal; //Current value of low - normalized 0 - 1 with min and max
+    double high_normal; //Current value of high - normalized 0 - 1 with min and max
     double high_normal_min;
     double high_normal_max;
     double high_normal_normal;   // This is the best to use 0 - 1
@@ -74,6 +84,7 @@ void start_mic(mic_type mic);
 void pause_pdm_mic();
 void resume_pdm_mic();
 void updateSoundProfileLow();
+void updateSoundProfileMid();
 void updateSoundProfileHigh();
 
 int freq_to_bin(float freq);

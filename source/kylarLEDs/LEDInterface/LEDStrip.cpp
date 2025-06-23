@@ -7,25 +7,43 @@ LEDStrip::LEDStrip(uint8_t strip){
     this->strip = strip;
     for(int i = 0; i < MAX_NUM_LEDS; i++){
         changesArray[i] = new LEDChange();
-        printf("size of ledchange = %d\n", sizeof(LEDChange));
+        // printf("size of ledchange = %d\n", sizeof(LEDChange));
         ledsArray[i*3] = 0;
         ledsArray[i*3+1] = 0;
         ledsArray[i*3+2] = 0;
-        printf("size of ledsarray = %d\n", sizeof(ledsArray));
+        // printf("size of ledsarray = %d\n", sizeof(ledsArray));
     }
     
 }
 
 
 void LEDStrip::setRGB(int index, rgb_t rgb){
-    // set RGB is discontinued, HSV is superior
-    // if(index >= NUM_LEDS){
-    //     return;
-    // }
-    // rgb.r = ColorUtil::sanitizeH(rgb.r);
-    // rgb.g = ColorUtil::sanitizeH(rgb.g);
-    // rgb.b = ColorUtil::sanitizeH(rgb.b);
-    // changesArray[index]->combine(rgb);
+    // Handle index wrapping for out-of-bounds, same as setHSV
+#ifdef LEDS_OFFSET
+    index += LEDS_OFFSET;
+#endif
+    if (index >= NUM_LEDS) {
+        index = index % NUM_LEDS;
+    } else if (index < -NUM_LEDS) {
+        index = index % NUM_LEDS;
+        index += NUM_LEDS;
+    } else if (index < 0) {
+        index += NUM_LEDS;
+    }
+    
+    // Sanitize RGB values to ensure they're in the [0,1] range
+    rgb.r = ColorUtil::sanitizeSV(rgb.r);
+    rgb.g = ColorUtil::sanitizeSV(rgb.g);
+    rgb.b = ColorUtil::sanitizeSV(rgb.b);
+    
+    // Convert to 8-bit RGB
+    rgb8_t rgb8;
+    rgb8.r = static_cast<uint8_t>(rgb.r * 255);
+    rgb8.g = static_cast<uint8_t>(rgb.g * 255);
+    rgb8.b = static_cast<uint8_t>(rgb.b * 255);
+    
+    // Apply to the changes array
+    changesArray[index]->combine(rgb8);
 }
 
 
@@ -56,7 +74,9 @@ irgb8_t LEDStrip::setHSV(int index, hsv_t hsv){
     hsv.h = ColorUtil::remapHueLUT[(int)(hsv.h/REMAP_LUT_RES)];//ColorUtil::remapHue(hsv.h);
     //timer->add("remapHue(hsv.h);");
 
-    hsv16_t hsv16 = {hsv.h * HSV_HUE_MAX, hsv.s * HSV_SAT_MAX, hsv.v * HSV_VAL_MAX};
+    hsv16_t hsv16 = {static_cast<uint16_t>(hsv.h * HSV_HUE_MAX),
+                     static_cast<uint8_t>(hsv.s * HSV_SAT_MAX),
+                     static_cast<uint8_t>(hsv.v * HSV_VAL_MAX)};
     rgb8_t rgb8;
     ColorUtil::fast_hsv2rgb_32bit(hsv16.h, hsv16.s, hsv16.v, &rgb8.r, &rgb8.g, &rgb8.b);
     //timer->add("::hsv2rgb(hsv)");
@@ -83,6 +103,8 @@ void LEDStrip::setRGBUnprotected(int index, rgb8_t rgb8){
         index += NUM_LEDS;
     }
 #endif
+    // If we're in a performance-critical section where sanitization has already been done,
+    // apply directly to the changes array
     changesArray[index]->combine(rgb8);
 }
 

@@ -1,11 +1,35 @@
 build/*
 !build/firefly.uf2
 !build/build.py
-.vscode
 !.vscode/launch.json
 utils/picotool/build/*
 *.DS_Store
 
+# Common Makefile directories
+obj/
+tmp/
+out/
 
+# Common CMake directories/files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
 
+# Build artifacts and dependencies
+*.a
+_deps/
+*.bin
+*.dis
+*.elf
+*.elf.map
+*.hex
+*.uf2
+pico-sdk/
+generated/
+pico_flash_region.ld
+picotool/
 
+# Debugging files
+pdm_viz/venv/

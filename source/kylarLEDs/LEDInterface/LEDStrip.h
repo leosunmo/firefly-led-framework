@@ -23,8 +23,19 @@ class LEDStrip{
         void apply();   // Apply the changes 
         void output();  // and output
         void clear();   // clear
+        /**
+         * Set RGB color using floating-point values (0.0-1.0)
+         * This method performs bounds checking on the index and sanitizes RGB values.
+         */
         void setRGB(int index, rgb_t rgb);
-        void setRGBUnprotected(int index, rgb8_t rgb); // can use if getting the rgb from setHSV
+        
+        /**
+         * Faster RGB setting for internal use.
+         * This method can be used when the rgb8_t values are already known to be valid
+         * and the caller has already handled index bounds checking.
+         * For example, when reusing rgb8 values returned from setHSV.
+         */
+        void setRGBUnprotected(int index, rgb8_t rgb);
         irgb8_t setHSV(int index, hsv_t hsv);
         void giveController(Controller *);
         double num(); //Get number of LEDs

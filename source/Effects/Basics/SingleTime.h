@@ -12,6 +12,7 @@ typedef struct{
     uint16_t Trise;
     uint16_t Thold;
     uint16_t Tfall;
+    float exp_dropoff;
 } single_time_t; // Times are in milliseconds
 
 class SingleTime : public Effect{

@@ -14,9 +14,10 @@
  * 
  */
 #define NUM_STRIPS 1
-#define NUM_LEDS 49
-#define LEDS_OFFSET -6
-//#define HARDCODE_BRIGHTNESS 0.7 // Comment this out if you don't want to hardcode the brightness. This overrides the Potentiometer.
+// #define NUM_LEDS 720 
+#define NUM_LEDS 287
+// #define LEDS_OFFSET -6
+// #define HARDCODE_BRIGHTNESS 0.7 // Comment this out if you don't want to hardcode the brightness. This overrides the Potentiometer.
 
 ////////////////////////////////////////////////////////////
 /////////                 HARDWARE              ////////////
@@ -48,6 +49,29 @@
 #define PDM_MIC_PIN_CLK  21
 
 
+////////////////////////////////////////////////////////////
+/////////                ENCODERS               ////////////
+////////////////////////////////////////////////////////////
+/**
+ * Encoder Pins
+ */
+// Hue Encoder
+#define ENCODER_HUE_A 3
+#define ENCODER_HUE_B 6
+
+// Effect Encoder
+#define ENCODER_EFFECT_A 24
+#define ENCODER_EFFECT_B 23
+
+////////////////////////////////////////////////////////////
+/////////                BUTTONS                ////////////
+////////////////////////////////////////////////////////////
+/**
+ * Button Pins
+ */
+#define ENCODER_PATTERN_BUTTON 17
+#define ENCODER_EFFECT_BUTTON 15
+
 
 ////////////////////////////////////////////////////////////
 /////////                MICROPHONE             ////////////
@@ -56,8 +80,22 @@
  * Signal Processing Options
  */
 #define LOW_BINS 20
+#define MID_BINS 30
 #define SKIP_BINS 0
-#define HIGH_BINS 100
+#define HIGH_BINS 70
+
+/**
+ * Frequency band ranges in Hz
+ * These are calculated based on the bin-to-frequency conversion formula:
+ * freq = 15.628*bin + 0.286
+ * Where bin starts at 3 and each band has the number of bins defined above
+ */
+#define LOW_BAND_START 47    // ~47.17 Hz
+#define LOW_BAND_END   344   // ~344.10 Hz
+#define MID_BAND_START 360   // ~359.73 Hz
+#define MID_BAND_END   813   // ~812.94 Hz
+#define HIGH_BAND_START 829  // ~828.57 Hz
+#define HIGH_BAND_END  1907  // ~1906.90 Hz
 
 
 ////////////////////////////////////////////////////////////
@@ -87,11 +125,15 @@
 /////////                DEBUG                   ////////////
 ////////////////////////////////////////////////////////////
 #define DEBUG_DELAY_MAIN 0 // Used to give time to start Serial Monitoring
-#define DEBUG_PRINT_MAIN 1
+#define DEBUG_PRINT_MAIN 0
+#define DEBUG_PRINT_MEMORY 0
+#define DEBUG_SOUND_PROFILE 0
+#define DEBUG_SOUND_PROFILE_BOTH 0
 #define DEBUG_PRINT_MIC 0
 #define DEBUG_PRINT_MIC_TIMING 0
-#define DEBUG_PRINT_FLASH 1
+#define DEBUG_PRINT_FLASH 0
 #define DEBUG_PRINT_OTHER 0
+#define DEBUG_PRINT_UART 0
 
 ////////////////////////////////////////////////////////////
 /////////                MISC                   ////////////

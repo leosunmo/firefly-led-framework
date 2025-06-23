@@ -1,68 +1,112 @@
 #include "Encoder.h"
-#include "pico/stdlib.h"
 #include "hardware/gpio.h"
-#include "pico/time.h"
 #include <stdio.h>
-int Encoder::count = 0;
-int Encoder::frequency = 0;
 
-uint8_t Encoder::pinA;
-uint8_t Encoder::pinB;
+// Mostly taken from https://github.com/wd5gnr/MbedQuadratureEncoder/tree/main
+// and the associated blog post https://hackaday.com/2022/04/20/a-rotary-encoder-how-hard-can-it-be/
 
-void Encoder::interrupt(uint gpio, uint32_t event)
+// TODO(leo): It seems like it's not behaving correctly when you move it quickly in one direction
+// and then change direction. This is presumably because of locktime and co. Proper hardware will probably fix this.
+
+Encoder::Encoder(int A, int B) : pinA(A), pinB(B), count(0)
+{
+    gpio_init(A);
+    gpio_init(B);
+    gpio_set_dir(A, GPIO_IN);
+    gpio_set_dir(B, GPIO_IN);
+    gpio_pull_up(A);
+    gpio_pull_up(B);
+    GPIOInterruptHandler::registerCallback(A, [this]()
+                                           { this->handleInterrupt(); }, GPIO_IRQ_EDGE_RISE);
+}
+
+int Encoder::getCount() const
+{
+    return Encoder::count;
+}
+
+void Encoder::setCallback(std::function<void(int)> callback)
+{
+    Encoder::callbacks.push_back(callback);
+}
+
+void Encoder::clearCallbacks()
+{
+    Encoder::callbacks.clear();
+}
+
+void Encoder::handleInterrupt()
 {
     static absolute_time_t last_time = {0};
     static double velocity = 0; // measure how many times the encoder has been turned in the last second
+    static int last_direction = 0; // 1 for positive, -1 for negative, 0 for no movement
     absolute_time_t new_time = get_absolute_time();
 
     if (absolute_time_diff_us(last_time, new_time) < 2000)
-    { // 2ms
+    { // 2ms debounce
         return;
     }
 
     uint64_t time_delta = absolute_time_diff_us(last_time, new_time);
 
-    velocity = (1000000.0 / (double)time_delta );
-    //0 - 10 : intentional
-    //10-20 : normal
+    velocity = (1000000.0 / (double)time_delta);
+    // 0 - 10 : intentional
+    // 10-20 : normal
     // 20+ : fast
     int add = 1 + (int)velocity / 10; // scale 
 
+    // Determine the current direction
+    int current_direction = gpio_get(Encoder::pinB) ? 1 : -1;
 
-    last_time = new_time;
-   
-    //  EN_A rising edge:
-    if (gpio_get(Encoder::pinB))
+    printf("Encoder direction: %d, velocity: %f, add: %d\n", current_direction, velocity, add);
+    // Reset velocity if direction changes
+    if (current_direction != last_direction && last_direction != 0)
     {
-        Encoder::count += add; 
+        velocity = 0;
+    }
+
+    last_direction = current_direction;
+    last_time = new_time;
+
+    int newCount = Encoder::count;
+    
+    if (Encoder::accumulate)
+    {
+        // If we are accumulating, update count based on direction
+        newCount += add * current_direction;
+        
+        // Apply range constraints
+        if (wrapAround && (maxValue > minValue)) // Ensure valid range for wrapping
+        {
+            // Calculate range size (adding 1 because ranges are inclusive)
+            int range = maxValue - minValue + 1;
+            
+            // Wrap around within range using modulo arithmetic
+            if (newCount > maxValue || newCount < minValue)
+            {
+                // Adjust to be within range using modulo
+                newCount = minValue + ((newCount - minValue) % range + range) % range;
+            }
+        }
+        else
+        {
+            // Clamp to range without wrapping
+            if (newCount > maxValue)
+                newCount = maxValue;
+            else if (newCount < minValue)
+                newCount = minValue;
+        }
     }
     else
     {
-        Encoder::count -= add; 
+        // If we are not accumulating, just use the direction
+        newCount = current_direction;
     }
-}
-
-
-int Encoder::getCount()
-{
-    return Encoder::count;
-}
-
-Encoder::Encoder(int A, int B)
-{
-    // Inputs:
-    Encoder::pinA = A;
-    Encoder::pinB = B;
-    gpio_init(A);
-    gpio_init(B);
-    gpio_set_dir(A, GPIO_IN);
-    gpio_set_dir(B, GPIO_IN);
-    gpio_pull_up(A); // Set PULL UP
-    gpio_pull_up(B); // Set PULL UP
-    // INTERRUPTS NOTE: "Currently GPIO parameter is ignored, callback will be called for any enabled GPIO IRQ on any pin"
-    gpio_irq_callback_t callback = &Encoder::interrupt; // warning, spaghetti code, this function is not called by the interrupt...
-    // The callback function being called is actually Button::interrupt.... but this is left here to enable this interrupt
-    gpio_set_irq_enabled_with_callback(A, GPIO_IRQ_EDGE_RISE, true, callback);
-
     
+    Encoder::count = newCount;
+
+    for (const auto &callback : Encoder::callbacks)
+    {
+        callback(Encoder::count);
+    }
 }
